@@ -1,12 +1,15 @@
 import os.path
+import sqlite3
+
 import pygame
 
-
+con = sqlite3.connect(os.path.join('data', 'UnderWater.sqlite'))
 class InputLine:
-    def __init__(self, x: int, y: int, width: int, height: int, text_bg: str):
+    def __init__(self, x: int, y: int, width: int, height: int, text_bg: str, password=False):
         self.rect = pygame.rect.Rect(x, y, width, height)
+        self.password = password
 
-        self.font = pygame.font.Font(None, height // 6 * 3)
+        self.font = pygame.font.Font(None, height // 6 * 4)
         self.text = text_bg
         self.user_input = ''
 
@@ -14,36 +17,29 @@ class InputLine:
 
     def draw(self, screen: pygame.surface.Surface):
         pygame.draw.rect(screen, '#03045e', self.rect, width=3)
-        if not self.enter:
+        if not self.enter and self.user_input == '':
             self.inp_text = self.font.render(self.text, False, '#3c81f0')
+        elif self.password and self.user_input != '':
+            self.inp_text = self.font.render(len(self.user_input) * '*', False, '#03045e')
         else:
             self.inp_text = self.font.render(self.user_input, False, '#03045e')
         self.text_rect = self.inp_text.get_rect(center=self.rect.center)
 
         """
         Ниже стирается старый текст путем наложение такого же текста, цветом заднего фона
-        ДОДЕЛАТЬ
-        !
-        !
-        !
-        !
-        !
-        """
-        text1 = self.font.render(self.text, False, '#ade8f4')
-        text2 = self.font.render(self.user_input, False, '#ade8f4')
-        text1_rect = text1.get_rect(center=self.rect.center)
-        text2_rect = text2.get_rect(center=self.rect.center)
-        screen.blit(text1, text1_rect)
-        screen.blit(text2, text2_rect)
-        """
-        !
-        !
-        !
-        !
-        ДОДЕЛАТЬ
         """
 
-        screen.blit(self.inp_text, self.text_rect)
+        screen2 = pygame.surface.Surface((self.rect[2] - 6, self.rect[3] - 6))
+        screen2.fill('#ade8f4')
+        # text1 = self.font.render(self.text, False, '#ade8f4')
+        # text2 = self.font.render(self.user_input[:-1], False, '#ade8f4')
+        # text1_rect = text1.get_rect(center=self.rect.center)
+        # text2_rect = text2.get_rect(center=self.rect.center)
+        # screen.blit(text1, text1_rect)
+        # screen.blit(text2, text2_rect)
+
+        screen.blit(screen2, (self.rect[0] + 3, self.rect[1] + 3))
+        screen.blit(self.inp_text, (self.rect[0] + 3, self.rect[1] + 3))
 
     def is_clicked(self):
         mouse = pygame.mouse.get_pos()
@@ -53,8 +49,15 @@ class InputLine:
         return False
 
     def input(self, event):
-        if self.enter:
-            self.user_input += chr(event.key)
+        try:
+            if self.enter:
+                if event.key != pygame.K_BACKSPACE:
+                    if len(self.user_input) < 15:
+                        self.user_input += chr(event.key)
+                else:
+                    self.user_input = self.user_input[:-1]
+        except Exception:
+            pass
 
 
 class Button:
@@ -161,15 +164,50 @@ class RegistrationWindow(BaseWindow):
         inp_proof_password_x, inp_proof_password_y = self.size[0] / 6, self.size[1] / 10 * 6
 
         self.user_name = InputLine(inp_user_name_x, inp_user_name_y, inp_width, inp_height, 'Имя пользователя')
-        self.password = InputLine(inp_password_x, inp_password_y, inp_width, inp_height, 'Пароль')
+        self.password = InputLine(inp_password_x, inp_password_y, inp_width, inp_height, 'Пароль', password=True)
         self.proof_password = InputLine(inp_proof_password_x, inp_proof_password_y, inp_width, inp_height,
-                                        'Подтверждение пароля')
+                                        'Подтверждение пароля', password=True)
+
+        btn_width, btn_height = 300, 100
+        btn_x, btn_y = self.size[0] / 6 * 3.5, self.size[1] / 6 * 2.3
+        normal_bg, hovered_bg = '#48cae4', '#00b4d8'
+        normal_text, hovered_text = '#03045e', '#ffffff'
+
+        self.btn_reg = Button(btn_x, btn_y, btn_width, btn_height, 'Регистрация', normal_bg, hovered_bg,
+                              normal_text, hovered_text)
 
         self.inp_group = (self.user_name, self.password, self.proof_password)
 
     def draw(self):
         for i in self.inp_group:
             i.draw(self.screen)
+        self.btn_reg.draw(self.screen)
+
+    def reg(self):
+        username = self.user_name.user_input
+        password = self.password.user_input
+        proof_password = self.proof_password.user_input
+        if username == '' or password == '' or proof_password == '':
+            """
+            Вывод текста "Поля заполнены не корректно"
+            """
+        elif password != proof_password:
+            """
+            Вывод текста "Не совпадают пароли"  
+            """
+        elif len(username) < 4:
+            """
+            Вывод текста "Имя слишком короткое, минимум 4 символа"
+            """
+        elif len(password) < 8:
+            """
+            Вывод текста "Пароль слишком короткий, минимум 8 символов"
+            """
+        else:
+            self.add_bd(username, password, proof_password)
+
+    def add_bd(self, username, password, proof_password):
+        print(username, password, proof_password)
 
 
 class RecordsWindow(BaseWindow):
@@ -199,19 +237,22 @@ if __name__ == '__main__':
                     elif current_window.btn_records.is_clicked():
                         current_window = RecordsWindow()
                 elif isinstance(current_window, RegistrationWindow):
+                    if current_window.btn_reg.is_clicked():
+                        current_window.reg()
                     for input_line in current_window.inp_group:
                         if input_line.is_clicked():
                             input_line.enter = True
-                            print('нажата')
+                            for i in current_window.inp_group:
+                                if i != input_line:
+                                    i.enter = False
                             break
                     else:
                         for input_line in current_window.inp_group:
                             input_line.enter = False
-                            print('все сброшены')
             elif event.type == pygame.KEYDOWN:
                 if isinstance(current_window, RegistrationWindow):
                     for input_line in current_window.inp_group:
-                        if input_line.enter == True:
+                        if input_line.enter is True:
                             input_line.input(event)
 
         current_window.draw()
