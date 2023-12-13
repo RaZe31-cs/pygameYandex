@@ -65,7 +65,7 @@ class Button:
                  normal_textcolor, hovered_textcolor):
         self.rect = pygame.rect.Rect(x, y, width, height)
 
-        self.font = pygame.font.Font(os.path.join('data', 'better-vcr-5.2.ttf'), width // (len(text) - 1))
+        self.font = pygame.font.Font(os.path.join('data', 'better-vcr-5.2.ttf'), width // (len(text) - 1) % 20)
         self.text = text
 
         self.colors = {'normal_bg': normal_bgcolor, 'hovered_bg': hovered_bgcolor, 'normal_text': normal_textcolor,
@@ -141,10 +141,66 @@ class MainWindow(BaseWindow):
 class LoginWindow(BaseWindow):
     def __init__(self):
         super().__init__()
-        pygame.display.set_caption('Логин')
+        pygame.display.set_caption('Вход')
+
+        self.screen.fill('#ade8f4')
+
+        inp_width, inp_height = 320, 50
+
+        inp_user_name_x, inp_user_name_y = self.size[0] // 2 - inp_width // 2, self.size[1] / 10 * 3.5
+        inp_password_x, inp_password_y = self.size[0] // 2 - inp_width // 2, self.size[1] / 10 * 5
+
+        self.user_name = InputLine(inp_user_name_x, inp_user_name_y, inp_width, inp_height, 'Имя пользователя')
+        self.password = InputLine(inp_password_x, inp_password_y, inp_width, inp_height, 'Пароль', password=True)
+
+        self.inp_group = (self.user_name, self.password)
+
+        btn_width, btn_height = 220, 50
+        self.enter_btn = Button(self.size[0] // 2 - btn_width // 2, self.size[1] // 4 * 2.9, btn_width, btn_height,
+                                 'Войти', '#48cae4', '#00b4d8', '#03045e', '#ffffff')
+
+        self.error = False
+        self.error_text = ''
+
+    def display_text(self):
+        f = pygame.font.Font(os.path.join('data', 'better-vcr-5.2.ttf'), 50)
+        text = f.render('Вход', True, '#0077b6')
+        x, y = self.size[0] / 2 - text.get_width() / 2, text.get_height() * 2
+        self.screen.blit(text, (x, y))
 
     def draw(self):
-        pass
+        self.screen.fill('#ade8f4')
+        self.display_text()
+        for i in self.inp_group:
+            i.draw(self.screen)
+        self.enter_btn.draw(self.screen)
+        if self.error:
+            f = pygame.font.Font(os.path.join('data', 'better-vcr-5.2.ttf'), 15)
+            text = f.render(self.error_text, True, '#0077b6')
+            x, y = self.size[0] // 2 - text.get_width() // 2, self.size[1] // 2 + text.get_height() * 6.8
+            self.screen.blit(text, (x, y))
+
+    def check_input(self):
+        self.error, self.error_text = False, ''
+        for i in self.inp_group:
+            if i.user_input == '':
+                self.error = True
+                self.error_text = 'Заполните все поля'
+                break
+        return self.error
+
+    def next_input(self):
+        for i in range(3):
+            if self.inp_group[i].enter:
+                self.inp_group[i].enter = False
+                if i == 2:
+                    self.inp_group[0].enter = True
+                else:
+                    self.inp_group[i + 1].enter = True
+                break
+
+    def enter(self):
+        print(1)
 
 
 class RegistrationWindow(BaseWindow):
@@ -236,18 +292,28 @@ if __name__ == '__main__':
                 elif isinstance(current_window, RegistrationWindow):
                     if current_window.btn_reg.is_clicked():
                         current_window.reg()
-                    for input_line in current_window.inp_group:
-                        if input_line.is_clicked():
-                            input_line.enter = True
-                            for i in current_window.inp_group:
-                                if i != input_line:
-                                    i.enter = False
-                            break
                     else:
                         for input_line in current_window.inp_group:
-                            input_line.enter = False
+                            if input_line.is_clicked():
+                                input_line.enter = True
+                            else:
+                                input_line.enter = False
+                elif isinstance(current_window, LoginWindow):
+                    if current_window.enter_btn.is_clicked():
+                        if not current_window.check_input():
+                            current_window.enter()
+                    else:
+                        for input_line in current_window.inp_group:
+                            if input_line.is_clicked():
+                                input_line.enter = True
+                            else:
+                                input_line.enter = False
             elif event.type == pygame.KEYDOWN:
                 if isinstance(current_window, RegistrationWindow):
+                    for input_line in current_window.inp_group:
+                        if input_line.enter is True:
+                            input_line.input(event)
+                if isinstance(current_window, LoginWindow):
                     for input_line in current_window.inp_group:
                         if input_line.enter is True:
                             input_line.input(event)
