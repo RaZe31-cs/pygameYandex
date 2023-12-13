@@ -65,7 +65,7 @@ class Button:
                  normal_textcolor, hovered_textcolor):
         self.rect = pygame.rect.Rect(x, y, width, height)
 
-        self.font = pygame.font.Font(None, height // 6 * 4)
+        self.font = pygame.font.Font(os.path.join('data', 'better-vcr-5.2.ttf'), width // (len(text) - 1))
         self.text = text
 
         self.colors = {'normal_bg': normal_bgcolor, 'hovered_bg': hovered_bgcolor, 'normal_text': normal_textcolor,
@@ -77,7 +77,7 @@ class Button:
         if self.is_clicked():
             bg_color, text_color = self.colors['hovered_bg'], self.colors['hovered_text']
         screen.fill(bg_color, self.rect)
-
+        pygame.draw.rect(screen, self.colors['normal_text'], (self.rect.x - 1, self.rect.y - 1, self.rect.w + 1, self.rect.h + 1), 3)
         self.btn_text = self.font.render(self.text, True, text_color)
         self.text_rect = self.btn_text.get_rect(center=self.rect.center)
         screen.blit(self.btn_text, self.text_rect)
@@ -109,30 +109,27 @@ class MainWindow(BaseWindow):
         self.screen.fill('#ade8f4')
         pygame.display.set_caption('Главный экран')
 
-        btn_width, btn_height = 210, 50
-        btn_login_x, btn_login_y = self.size[0] / 3 - btn_width / 2, self.size[1] / 3 + btn_height
-        btn_reg_x, btn_reg_y = self.size[0] - self.size[0] / 3 - btn_width / 2, self.size[1] / 3 + btn_height
-        btn_records_x, btn_records_y = self.size[0] / 2 - btn_width / 2, self.size[1] / 2 + btn_height / 2
+        btn_width, btn_height = 210, 70
+        btn_login_x, btn_login_y = self.size[0] // 2 - btn_width * 1.2, self.size[1] / 2 + btn_height / 4
+        btn_reg_x, btn_reg_y = self.size[0] // 2 + btn_width * 0.2, self.size[1] / 2 + btn_height / 4
+        btn_records_x, btn_records_y = self.size[0] // 2 - btn_width // 2, self.size[1] / 2 + btn_height * 1.7
 
         normal_bg, hovered_bg = '#48cae4', '#00b4d8'
         normal_text, hovered_text = '#03045e', '#ffffff'
 
         self.btn_login = Button(btn_login_x, btn_login_y, btn_width, btn_height, 'Войти в аккаунт', normal_bg,
                                 hovered_bg, normal_text, hovered_text)
-
         self.btn_reg = Button(btn_reg_x, btn_reg_y, btn_width, btn_height, 'Создать аккаунт', normal_bg,
                               hovered_bg, normal_text, hovered_text)
-
         self.btn_records = Button(btn_records_x, btn_records_y, btn_width, btn_height, 'Таблица рекордов', normal_bg,
                                   hovered_bg, normal_text, hovered_text)
 
         self.btn_group = [self.btn_login, self.btn_reg, self.btn_records]
 
     def display_text(self):
-        f1 = pygame.font.Font(os.path.join('data', 'Aguante-Regular.otf'), 60)
-        text = f1.render('UNDERWATER', True, '#0077b6')
-        x, y = self.size[0] / 2 - text.get_width() / 2, self.size[1] / 2 - text.get_width() / 2
-        text_w, text_h = text.get_width(), text.get_height()
+        f = pygame.font.Font(os.path.join('data', 'Aguante-Regular.otf'), 90)
+        text = f.render('UNDERWATER', True, '#0077b6')
+        x, y = self.size[0] // 2 - text.get_width() // 2, self.size[1] // 2 - text.get_width() / 3.5
         self.screen.blit(text, (x, y))
 
     def draw(self):
