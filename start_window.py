@@ -167,7 +167,7 @@ class LoginWindow(BaseWindow):
         btn_width, btn_height = 220, 50
         self.enter_btn = Button(self.size[0] // 2 - btn_width // 2, self.size[1] // 4 * 2.9, btn_width, btn_height,
                                 'Войти', '#48cae4', '#00b4d8', '#03045e', '#ffffff')
-
+        self.exit_btn = Button(20, 20, 50, 50, '', '#48cae4', '#00b4d8', '#03045e', '#ffffff')
         self.error = False
         self.error_text = ''
 
@@ -177,12 +177,22 @@ class LoginWindow(BaseWindow):
         x, y = self.size[0] / 2 - text.get_width() / 2, text.get_height() * 2
         self.screen.blit(text, (x, y))
 
+    def exit_btn_draw(self):
+        fullname = os.path.join('data', 'exit.png')
+        self.image = pygame.image.load(fullname)
+        self.exit_btn.draw(self.screen)
+        self.rect = self.image.get_rect()
+        self.rect.x = self.exit_btn.rect.x + (self.exit_btn.rect.w // 2 - self.rect.w // 2)
+        self.rect.y = self.exit_btn.rect.y + (self.exit_btn.rect.h // 2 - self.rect.h // 2)
+        self.screen.blit(self.image, (self.rect.x, self.rect.y))
+
     def draw(self):
         self.screen.fill('#ade8f4')
         self.display_text()
         for i in self.inp_group:
             i.draw(self.screen)
         self.enter_btn.draw(self.screen)
+        self.exit_btn_draw()
         if self.error:
             f = pygame.font.Font(os.path.join('data', 'better-vcr-5.2.ttf'), 15)
             text = f.render(self.error_text, True, '#0077b6')
@@ -248,6 +258,7 @@ class RegistrationWindow(BaseWindow):
         self.btn_reg = Button(self.size[0] // 2 - btn_width // 2, self.size[1] // 4 * 3.2, btn_width, btn_height,
                               'Регистрация', normal_bg, hovered_bg,
                               normal_text, hovered_text)
+        self.exit_btn = Button(20, 20, 50, 50, '', normal_bg, hovered_bg, normal_text, hovered_text)
 
         self.inp_group = (self.user_name, self.password, self.proof_password)
 
@@ -258,6 +269,15 @@ class RegistrationWindow(BaseWindow):
         text = f.render('Регистрация', True, '#0077b6')
         x, y = self.size[0] / 2 - text.get_width() / 2, self.size[1] / 2 - text.get_width() / 1.5
         self.screen.blit(text, (x, y))
+
+    def exit_btn_draw(self):
+        fullname = os.path.join('data', 'exit.png')
+        self.image = pygame.image.load(fullname)
+        self.exit_btn.draw(self.screen)
+        self.rect = self.image.get_rect()
+        self.rect.x = self.exit_btn.rect.x + (self.exit_btn.rect.w // 2 - self.rect.w // 2)
+        self.rect.y = self.exit_btn.rect.y + (self.exit_btn.rect.h // 2 - self.rect.h // 2)
+        self.screen.blit(self.image, (self.rect.x, self.rect.y))
 
     def error_message(self):
         if self.error_text:
@@ -271,6 +291,7 @@ class RegistrationWindow(BaseWindow):
         for i in self.inp_group:
             i.draw(self.screen)
         self.btn_reg.draw(self.screen)
+        self.exit_btn_draw()
         self.error_message()
 
     def reg(self):
@@ -353,7 +374,8 @@ if __name__ == '__main__':
                     if current_window.btn_reg.is_clicked():
                         if current_window.reg():
                             current_window = LevelMenu()
-                            break
+                    elif current_window.exit_btn.is_clicked():
+                        current_window = MainWindow()
                     else:
                         for input_line in current_window.inp_group:
                             if input_line.is_clicked():
@@ -364,6 +386,8 @@ if __name__ == '__main__':
                     if current_window.enter_btn.is_clicked():
                         if not current_window.check_input():
                             current_window = LevelMenu()
+                    elif current_window.exit_btn.is_clicked():
+                        current_window = MainWindow()
                     else:
                         for input_line in current_window.inp_group:
                             if input_line.is_clicked():
