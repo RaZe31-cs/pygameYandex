@@ -1,9 +1,21 @@
+import hashlib
 import os.path
 import sqlite3
 
 import pygame
 
 con = sqlite3.connect(os.path.join('data', 'UnderWater.sqlite'))
+
+cur = con.cursor()
+
+SECRET_WORD = 'соль'
+
+
+def hash_password(password):
+    if hash:
+        return hashlib.md5(password.encode()).hexdigest()
+
+
 class InputLine:
     def __init__(self, x: int, y: int, width: int, height: int, text_bg: str, password=False):
         self.rect = pygame.rect.Rect(x, y, width, height)
@@ -221,8 +233,11 @@ class RegistrationWindow(BaseWindow):
         self.proof_password = InputLine(inp_proof_password_x, inp_proof_password_y, inp_width, inp_height,
                                         'Подтверждение пароля', password=True)
 
+        self.error_text_rect = pygame.rect.Rect(0, self.screen.get_height() / 6 * 5, self.size[0],
+                                                self.screen.get_height() / 12)
+
         btn_width, btn_height = 300, 100
-        btn_x, btn_y = self.size[0] / 6 * 3.5, self.size[1] / 6 * 2.3
+        btn_x, btn_y = self.size[0] / 6 * 2, self.size[1] / 6 * 4
         normal_bg, hovered_bg = '#48cae4', '#00b4d8'
         normal_text, hovered_text = '#03045e', '#ffffff'
 
@@ -230,6 +245,8 @@ class RegistrationWindow(BaseWindow):
                               normal_text, hovered_text)
 
         self.inp_group = (self.user_name, self.password, self.proof_password)
+
+        self.font = pygame.font.Font(None, 20)
 
     def draw(self):
         for i in self.inp_group:
@@ -240,33 +257,67 @@ class RegistrationWindow(BaseWindow):
         username = self.user_name.user_input
         password = self.password.user_input
         proof_password = self.proof_password.user_input
+        text = ''
         if username == '' or password == '' or proof_password == '':
             """
             Вывод текста "Поля заполнены не корректно"
             """
+            text = 'Поля заполнены не корректно'
         elif password != proof_password:
             """
             Вывод текста "Не совпадают пароли"  
             """
+            text = "Не совпадают пароли"
         elif len(username) < 4:
             """
             Вывод текста "Имя слишком короткое, минимум 4 символа"
             """
+            text = "Имя слишком короткое, минимум 4 символа"
         elif len(password) < 8:
             """
             Вывод текста "Пароль слишком короткий, минимум 8 символов"
             """
+            text = "Пароль слишком короткий, минимум 8 символов"
         else:
-            self.add_bd(username, password, proof_password)
+            if self.add_bd(username, password):
+                return True
+            return False
+        if text != '':
+            text_on_screen = self.font.render(text, True, 'black')
+            text_rect = text_on_screen.get_rect(center=self.error_text_rect.center)
+            self.screen.blit(text_on_screen, text_rect)
 
-    def add_bd(self, username, password, proof_password):
-        print(username, password, proof_password)
+    def add_bd(self, username, password):
+        password = hash_password(password + SECRET_WORD)
+        try:
+            cur.execute("""
+            INSERT INTO Players(username, password) VALUES(?, ?)
+            """, (username, password))
+            con.commit()
+            return True
+        except Exception as e:
+            """
+            Вывод текста "Такое имя пользователя существует"
+            """
+            text = "Такое имя пользователя существует"
+            text_on_screen = self.font.render(text, True, 'black')
+            text_rect = text_on_screen.get_rect(center=self.error_text_rect.center)
+            self.screen.blit(text_on_screen, text_rect)
+            return False
 
 
 class RecordsWindow(BaseWindow):
     def __init__(self):
         super().__init__()
         pygame.display.set_caption('Рекорды')
+
+    def draw(self):
+        pass
+
+
+class LevelMenu(BaseWindow):
+    def __init__(self):
+        super().__init__()
 
     def draw(self):
         pass
@@ -291,7 +342,9 @@ if __name__ == '__main__':
                         current_window = RecordsWindow()
                 elif isinstance(current_window, RegistrationWindow):
                     if current_window.btn_reg.is_clicked():
-                        current_window.reg()
+                        if current_window.reg():
+                            current_window = LevelMenu()
+                            break
                     else:
                         for input_line in current_window.inp_group:
                             if input_line.is_clicked():
