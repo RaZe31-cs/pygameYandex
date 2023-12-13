@@ -1,4 +1,5 @@
 import hashlib
+import math
 import os.path
 import sqlite3
 import time
@@ -15,6 +16,43 @@ SECRET_WORD = 'соль'
 def hash_password(password):
     if hash:
         return hashlib.md5(password.encode()).hexdigest()
+
+
+current_username = {'username': ''}
+
+
+class BaseLevel:
+    pass
+
+
+class Level1(BaseLevel):
+    def __init__(self):
+        super().__init__()
+        print('Левел в разработке')
+
+
+class Level2(BaseLevel):
+    def __init__(self):
+        super().__init__()
+        print('Левел в разработке')
+
+
+class Level3(BaseLevel):
+    def __init__(self):
+        super().__init__()
+        print('Левел в разработке')
+
+
+class Level4(BaseLevel):
+    def __init__(self):
+        super().__init__()
+        print('Левел в разработке')
+
+
+class Level5(BaseLevel):
+    def __init__(self):
+        super().__init__()
+        print('Левел в разработке')
 
 
 class InputLine:
@@ -214,6 +252,8 @@ class LoginWindow(BaseWindow):
             if password != data[2]:
                 self.error = True
                 self.error_text = 'Неверный пароль'
+            else:
+                current_username['username'] = username
         except Exception as e:
             self.error = True
             self.error_text = 'Такого пользователя не существует'
@@ -309,6 +349,7 @@ class RegistrationWindow(BaseWindow):
             self.error_text = "Пароль слишком короткий, минимум 8 символов"
         else:
             if self.add_bd(username, password):
+                current_username['username'] = username
                 return True
             return False
 
@@ -318,6 +359,11 @@ class RegistrationWindow(BaseWindow):
             cur.execute("""
             INSERT INTO Players(username, password, progress) VALUES(?, ?, ?)
             """, (username, password, 1))
+            id = cur.execute("""SELECT id FROM Players WHERE username = ?""", (username,)).fetchone()
+            cur.execute("""
+            INSERT INTO Levels_Progress(player_id, level1_star, level2_star, level3_star, level4_star, level5_star) 
+            VALUES(?, 0, 0, 0, 0, 0)
+            """, (*id,))
             con.commit()
             return True
         except Exception as e:
@@ -348,13 +394,83 @@ class RecordsWindow(BaseWindow):
 class LevelMenu(BaseWindow):
     def __init__(self):
         super().__init__()
+        pygame.display.set_caption('Выбор уровня')
+        self.screen.fill('#ade8f4')
+
+        btn_width = btn_height = 70
+
+        btn_level1_x, btn_level1_y = self.size[0] / 10 * 2, self.size[1] / 4
+        btn_level2_x, btn_level2_y = self.size[0] / 10 * 4.5, self.size[1] / 4
+        btn_level3_x, btn_level3_y = self.size[0] / 10 * 7, self.size[1] / 4
+        btn_level4_x, btn_level4_y = self.size[0] / 10 * 3.23, self.size[1] / 6 * 3
+        btn_level5_x, btn_level5_y = self.size[0] / 10 * 5.7, self.size[1] / 6 * 3
+
+        normal_bg, hovered_bg = '#48cae4', '#00b4d8'
+        normal_text, hovered_text = '#03045e', '#ffffff'
+
+        self.btn_level1 = Button(btn_level1_x, btn_level1_y, btn_width, btn_height, ' 1 ', normal_bg, hovered_bg,
+                                 normal_text, hovered_text)
+        self.btn_level2 = Button(btn_level2_x, btn_level2_y, btn_width, btn_height, ' 2 ', normal_bg, hovered_bg,
+                                 normal_text, hovered_text)
+        self.btn_level3 = Button(btn_level3_x, btn_level3_y, btn_width, btn_height, ' 3 ', normal_bg, hovered_bg,
+                                 normal_text, hovered_text)
+        self.btn_level4 = Button(btn_level4_x, btn_level4_y, btn_width, btn_height, ' 4 ', normal_bg, hovered_bg,
+                                 normal_text, hovered_text)
+        self.btn_level5 = Button(btn_level5_x, btn_level5_y, btn_width, btn_height, ' 5 ', normal_bg, hovered_bg,
+                                 normal_text, hovered_text)
+
+        self.exit_btn = Button(20, 20, 50, 50, '', '#48cae4',
+                               '#00b4d8', '#03045e', '#ffffff')
+
+        self.group_btn = (
+            self.btn_level1, self.btn_level2, self.btn_level3, self.btn_level4, self.btn_level5)
 
     def draw(self):
-        pass
+        self.exit_btn_draw()
+        for i in self.group_btn:
+            i.draw(self.screen)
+        self.draw_stars()
+
+    def exit_btn_draw(self):
+        fullname = os.path.join('data', 'exit.png')
+        self.image = pygame.image.load(fullname)
+        self.exit_btn.draw(self.screen)
+        self.rect = self.image.get_rect()
+        self.rect.x = self.exit_btn.rect.x + (self.exit_btn.rect.w // 2 - self.rect.w // 2)
+        self.rect.y = self.exit_btn.rect.y + (self.exit_btn.rect.h // 2 - self.rect.h // 2)
+        self.screen.blit(self.image, (self.rect.x, self.rect.y))
+
+    def draw_stars(self):
+        for number, i in enumerate(self.group_btn):
+            self.draw_star(number, i.rect)
+
+    def draw_star(self, number, rect):
+        count_star = self.count_star(number)
+        if count_star != 0:
+            images_star = {1: pygame.image.load(os.path.join('data', 'star1.png')),
+                           2: pygame.image.load(os.path.join('data', 'star2.png')),
+                           3: pygame.image.load(os.path.join('data', 'star3.png'))}
+            image = images_star[count_star]
+            image = pygame.transform.scale(image,
+                                           (image.get_width() * 0.5 * 0.3 * 2, image.get_height() * 0.5 * 0.3 * 2))
+            if count_star == 1:
+                x = rect.x + image.get_width() / 1.5
+            else:
+                x = rect.x
+            y = rect.y + image.get_height() * 70 / image.get_height()
+            width = image.get_width()
+            height = image.get_height()
+            self.screen.blit(image, pygame.rect.Rect(x, y, width, height))
+
+    def count_star(self, number) -> int:
+        res = cur.execute(f'SELECT level{number + 1}_star FROM Levels_Progress WHERE player_id = ('
+                          'SELECT id FROM Players where username = ?)', (current_username['username'],)).fetchone()
+        return sum(res)
 
 
 if __name__ == '__main__':
     current_window = MainWindow()
+    # current_window = LevelMenu()
     running = True
     clock = pygame.time.Clock()
     FPS = 60
@@ -394,6 +510,19 @@ if __name__ == '__main__':
                                 input_line.enter = True
                             else:
                                 input_line.enter = False
+                elif isinstance(current_window, LevelMenu):
+                    if current_window.exit_btn.is_clicked():
+                        current_window = LoginWindow()
+                    elif current_window.btn_level1.is_clicked():
+                        current_window = Level1()
+                    elif current_window.btn_level2.is_clicked():
+                        current_window = Level2()
+                    elif current_window.btn_level3.is_clicked():
+                        current_window = Level3()
+                    elif current_window.btn_level4.is_clicked():
+                        current_window = Level4()
+                    elif current_window.btn_level5.is_clicked():
+                        current_window = Level5()
             elif event.type == pygame.KEYDOWN:
                 if isinstance(current_window, RegistrationWindow):
                     if event.key == pygame.K_RETURN:
