@@ -30,11 +30,17 @@ class Level1(BaseLevel):
         super().__init__()
         print('Левел в разработке')
 
+    def draw(self):
+        pass
+
 
 class Level2(BaseLevel):
     def __init__(self):
         super().__init__()
         print('Левел в разработке')
+
+    def draw(self):
+        pass
 
 
 class Level3(BaseLevel):
@@ -42,17 +48,26 @@ class Level3(BaseLevel):
         super().__init__()
         print('Левел в разработке')
 
+    def draw(self):
+        pass
+
 
 class Level4(BaseLevel):
     def __init__(self):
         super().__init__()
         print('Левел в разработке')
 
+    def draw(self):
+        pass
+
 
 class Level5(BaseLevel):
     def __init__(self):
         super().__init__()
         print('Левел в разработке')
+
+    def draw(self):
+        pass
 
 
 class InputLine:
@@ -157,8 +172,8 @@ class MainWindow(BaseWindow):
         pygame.display.set_caption('Главный экран')
 
         btn_width, btn_height = 210, 70
-        btn_login_x, btn_login_y = self.size[0] // 2 - btn_width * 1.2, self.size[1] / 2 + btn_height / 4
-        btn_reg_x, btn_reg_y = self.size[0] // 2 + btn_width * 0.2, self.size[1] / 2 + btn_height / 4
+        btn_login_x, btn_login_y = self.size[0] // 2 - btn_width * 1.2, self.size[1] / 2 + btn_height / 5
+        btn_reg_x, btn_reg_y = self.size[0] // 2 + btn_width * 0.2, self.size[1] / 2 + btn_height / 5
         btn_records_x, btn_records_y = self.size[0] // 2 - btn_width // 2, self.size[1] / 2 + btn_height * 1.7
 
         normal_bg, hovered_bg = '#48cae4', '#00b4d8'
@@ -382,13 +397,104 @@ class RegistrationWindow(BaseWindow):
                 break
 
 
+class Table:
+    def __init__(self, data):
+        data = sorted(data, key=lambda x: (-x[1], x[0]))
+        self.data = {x: y for x, y in data}
+
+        self.col_user_width, self.col_rec_width, self.row_height = 400, 200, 70
+        self.coords = {}
+
+        for i in range(len(self.data)):
+            self.coords[(60, self.row_height * i)] = list(self.data.keys())[i]
+
+    def update(self, y_shift):
+        if y_shift > 0 and list(self.coords.keys())[0][1] == 0:
+            return False
+        elif y_shift < 0 and list(self.coords.keys())[-1][1] < 350:
+            return False
+        else:
+            old_coords = self.coords
+            self.coords = {}
+            for i in old_coords.keys():
+                x, y = i
+                self.coords[(x, y + y_shift)] = old_coords[i]
+
+
 class RecordsWindow(BaseWindow):
     def __init__(self):
         super().__init__()
         pygame.display.set_caption('Рекорды')
+        self.screen.fill('#ade8f4')
+        self.table = Table(self.records_data())
+
+        normal_bg, hovered_bg = '#48cae4', '#00b4d8'
+        normal_text, hovered_text = '#03045e', '#ffffff'
+        self.exit_btn = Button(20, 20, 50, 50, '', normal_bg, hovered_bg, normal_text, hovered_text)
+
+        self.font = pygame.font.Font(os.path.join('data', 'better-vcr-5.2.ttf'), 15)
+
+    def display_text(self):
+        f = pygame.font.Font(os.path.join('data', 'better-vcr-5.2.ttf'), 40)
+        text = f.render('Рекорды', True, '#0077b6')
+        x, y = self.size[0] / 2 - text.get_width() / 2, text.get_height() / 1.5
+        self.screen.blit(text, (x, y))
+
+    def exit_btn_draw(self):
+        fullname = os.path.join('data', 'exit.png')
+        self.image = pygame.image.load(fullname)
+        self.exit_btn.draw(self.screen)
+        self.rect = self.image.get_rect()
+        self.rect.x = self.exit_btn.rect.x + (self.exit_btn.rect.w // 2 - self.rect.w // 2)
+        self.rect.y = self.exit_btn.rect.y + (self.exit_btn.rect.h // 2 - self.rect.h // 2)
+        self.screen.blit(self.image, (self.rect.x, self.rect.y))
+
+    def text_in_rect(self, x, y, w, h, text, color):
+        rect = pygame.rect.Rect(x, y, w, h)
+        text = self.font.render(str(text), True, color)
+        text_rect = text.get_rect(center=rect.center)
+        self.screen.blit(text, text_rect)
+        pygame.draw.rect(self.screen, color, rect, width=2)
+
+    def table_draw(self):
+        color = '#03045e'
+        x_shift, y_shift = (135, 160)
+        col_user_width, col_rec_width = self.table.col_user_width, self.table.col_rec_width
+        row_height = self.table.row_height
+
+        pygame.draw.rect(self.screen, color, (x_shift - 60, y_shift - 60, 660, 410), 5)
+        self.text_in_rect(x_shift - 60, y_shift - 60, 60, 60, '', color)
+        self.text_in_rect(x_shift, y_shift - 60, col_user_width, 60, 'Имя пользователя', color)
+        self.text_in_rect(x_shift + col_user_width, y_shift - 60, col_rec_width, 60, 'Прогресс', color)
+        coords = self.table.coords
+        for n, i in enumerate(coords.keys()):
+            x, y = i
+            if y < 0:
+                continue
+            elif y >= 350:
+                break
+            username = coords[i]
+            self.text_in_rect(x_shift - 60, y_shift + y, 60, row_height, str(n + 1), color)
+            self.text_in_rect(x_shift, y_shift + y, col_user_width, row_height, username, color)
+            self.text_in_rect(x_shift + col_user_width, y_shift + y, col_rec_width, row_height,
+                              self.table.data[username], color)
+        if len(coords.keys()) < 5:
+            for j in range(len(coords.keys()), 5):
+                pygame.draw.rect(self.screen, color, (x_shift, y_shift + row_height * j, col_user_width, row_height),
+                                 width=2)
+                pygame.draw.rect(self.screen, color,
+                                 (x_shift + col_user_width, y_shift + row_height * j, col_rec_width, row_height),
+                                 width=2)
 
     def draw(self):
-        pass
+        self.screen.fill('#ade8f4')
+        self.display_text()
+        self.table_draw()
+        self.exit_btn_draw()
+
+    def records_data(self):
+        res = cur.execute(f'SELECT username, progress FROM Players').fetchall()
+        return res
 
 
 class LevelMenu(BaseWindow):
@@ -397,13 +503,13 @@ class LevelMenu(BaseWindow):
         pygame.display.set_caption('Выбор уровня')
         self.screen.fill('#ade8f4')
 
-        btn_width = btn_height = 70
+        btn_width = btn_height = 100
 
-        btn_level1_x, btn_level1_y = self.size[0] / 10 * 2, self.size[1] / 4
-        btn_level2_x, btn_level2_y = self.size[0] / 10 * 4.5, self.size[1] / 4
-        btn_level3_x, btn_level3_y = self.size[0] / 10 * 7, self.size[1] / 4
-        btn_level4_x, btn_level4_y = self.size[0] / 10 * 3.23, self.size[1] / 6 * 3
-        btn_level5_x, btn_level5_y = self.size[0] / 10 * 5.7, self.size[1] / 6 * 3
+        btn_level1_x, btn_level1_y = self.size[0] / 8 * 1.5, self.size[1] / 4.5
+        btn_level2_x, btn_level2_y = self.size[0] / 8 * 3.5, self.size[1] / 4.5
+        btn_level3_x, btn_level3_y = self.size[0] / 8 * 5.5, self.size[1] / 4.5
+        btn_level4_x, btn_level4_y = self.size[0] / 8 * 2.5, self.size[1] / 6 * 3.2
+        btn_level5_x, btn_level5_y = self.size[0] / 8 * 4.5, self.size[1] / 6 * 3.2
 
         normal_bg, hovered_bg = '#48cae4', '#00b4d8'
         normal_text, hovered_text = '#03045e', '#ffffff'
@@ -446,21 +552,20 @@ class LevelMenu(BaseWindow):
 
     def draw_star(self, number, rect):
         count_star = self.count_star(number)
-        if count_star != 0:
-            images_star = {1: pygame.image.load(os.path.join('data', 'star1.png')),
-                           2: pygame.image.load(os.path.join('data', 'star2.png')),
-                           3: pygame.image.load(os.path.join('data', 'star3.png'))}
-            image = images_star[count_star]
-            image = pygame.transform.scale(image,
-                                           (image.get_width() * 0.5 * 0.3 * 2, image.get_height() * 0.5 * 0.3 * 2))
-            if count_star == 1:
-                x = rect.x + image.get_width() / 1.5
-            else:
-                x = rect.x
-            y = rect.y + image.get_height() * 70 / image.get_height()
-            width = image.get_width()
-            height = image.get_height()
-            self.screen.blit(image, pygame.rect.Rect(x, y, width, height))
+        star_coords = [(-7.5, 15), (27.5, 10), (77.5, 15)]
+        empty_img = pygame.image.load(os.path.join('data', 'empty_star.png'))
+        full_img = pygame.image.load(os.path.join('data', 'full_star.png'))
+
+        empty_img_big = pygame.image.load(os.path.join('data', 'empty_star_big.png'))
+        full_img_big = pygame.image.load(os.path.join('data', 'full_star_big.png'))
+        for s in range(count_star):
+            star_x, star_y = star_coords[s]
+            img = full_img_big if s == 1 else full_img
+            self.screen.blit(img, (rect.x + star_x, rect.y + rect.h + star_y))
+        for q in range(count_star, 3):
+            star_x, star_y = star_coords[q]
+            img = empty_img_big if q == 1 else empty_img
+            self.screen.blit(img, (rect.x + star_x, rect.y + rect.h + star_y))
 
     def count_star(self, number) -> int:
         res = cur.execute(f'SELECT level{number + 1}_star FROM Levels_Progress WHERE player_id = ('
@@ -510,6 +615,12 @@ if __name__ == '__main__':
                                 input_line.enter = True
                             else:
                                 input_line.enter = False
+                elif isinstance(current_window, RecordsWindow):
+                    if current_window.exit_btn.is_clicked():
+                        current_window = MainWindow()
+                    elif event.button in (4, 5):
+                        shift = current_window.table.row_height
+                        current_window.table.update(shift if event.button == 4 else -shift)
                 elif isinstance(current_window, LevelMenu):
                     if current_window.exit_btn.is_clicked():
                         current_window = LoginWindow()
