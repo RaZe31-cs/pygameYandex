@@ -1,6 +1,8 @@
 import pygame
 import os
 import sys
+import csv
+import random
 
 
 def load_level(filename):
@@ -8,15 +10,18 @@ def load_level(filename):
     if not os.path.isfile(filename):
         print(f"Файл '{filename}' не найден")
         sys.exit()
-    with open(filename, 'r') as mapFile:
-        level_map = [line.strip() for line in mapFile]
-
-    max_width = max(map(len, level_map))
-    return list(map(lambda x: x.ljust(max_width, '.'), level_map))
+    level_map = []
+    with open(filename) as map:
+        level = csv.reader(map, delimiter=',')
+        for row in level:
+            level_map.append(list(row))
+    return level_map
 
 
 pygame.init()
-level = load_level('lvl1.txt')
+icon = pygame.image.load(os.path.join('data', 'icon.png'))
+pygame.display.set_icon(icon)
+level = load_level('levels/level1.csv')
 tile_size = 40
 size = width, height = 1280, len(level) * tile_size
 screen = pygame.display.set_mode(size)
@@ -54,10 +59,8 @@ def import_folder(path):
 class Tile(pygame.sprite.Sprite):
     def __init__(self, tile_type, pos, size):
         super().__init__()
-        self.image = pygame.Surface((size, size))
+        self.image = tile_images[tile_type]
         self.tile_type = tile_type
-        self.image.fill(tile_images[tile_type])
-        '''self.image = tile_images[tile_type]'''
         self.rect = self.image.get_rect(topleft=pos)
 
     def update(self, x_shift):
@@ -81,11 +84,9 @@ class Player(pygame.sprite.Sprite):
         self.direction = pygame.math.Vector2(0, 0)
         self.speed = 4
         self.gravity = 0.15
-        self.jump_speed = -5
+        self.jump_speed = -5.7
 
         self.on_ground = False
-        self.on_left = False
-        self.on_right = False
 
     def import_character_assets(self):
         character_path = 'data/character/'
@@ -107,15 +108,6 @@ class Player(pygame.sprite.Sprite):
             self.image = image
         else:
             self.image = pygame.transform.flip(image, True, False)
-
-        if self.on_ground and self.on_right:
-            self.rect = self.image.get_rect(bottomright=self.rect.bottomright)
-        elif self.on_ground and self.on_left:
-            self.rect = self.image.get_rect(bottomleft=self.rect.bottomleft)
-        elif self.on_ground:
-            self.rect = self.image.get_rect(midbottom=self.rect.midbottom)
-        else:
-            self.rect = self.image.get_rect(center=self.rect.center)
 
     def get_status(self):
         self.animation_speed = 0.2
@@ -142,7 +134,7 @@ class Player(pygame.sprite.Sprite):
         else:
             self.direction.x = 0
 
-        if keys[pygame.K_SPACE]:  # добавить self.on_ground, если надо ограничить прыжок
+        if keys[pygame.K_SPACE] and self.on_ground:
             self.jump()
 
     def apply_gravity(self):
@@ -158,11 +150,10 @@ class Player(pygame.sprite.Sprite):
         self.animate()
 
 
-class Obstacle(pygame.sprite.Sprite):
-    def __init__(self, pos, size):
+class Decor(pygame.sprite.Sprite):
+    def __init__(self, pos, size, image):
         super().__init__()
-        self.image = pygame.Surface((size, size))
-        self.image.fill('green')
+        self.image = load_image(image)
         self.rect = self.image.get_rect(topleft=pos)
 
     def update(self, x_shift):
@@ -173,44 +164,50 @@ class Level:
     def __init__(self, level_data, surface):
         self.display_surface = surface
         self.setup_level(level_data)
-        self.lives = [pygame.rect.Rect(20 * (i + 1) + 5 * i, 20, 20, 20) for i in range(3)]
+        self.live_img = load_image('lives.png')
+        self.lives = [(20 * (i + 1) + 5 * i, 20) for i in range(3)]
 
     def setup_level(self, layout):
         self.tiles = pygame.sprite.Group()
-        self.obstacles = pygame.sprite.Group()
+        self.stars = pygame.sprite.Group()
+        self.stars_count, self.player_stars = 0, 0
         self.player = pygame.sprite.GroupSingle()
+        self.seaweeds = pygame.sprite.Group()
         self.world_shift = 0
+
 
         for row_index, row in enumerate(layout):
             for col_index, cell in enumerate(row):
                 x = col_index * tile_size
                 y = row_index * tile_size
 
-                if cell == '#':
-                    tile = Tile('ground', (x, y), tile_size)
+                if cell.isdigit():
+                    tile = Tile(int(cell), (x, y), tile_size)
                     self.tiles.add(tile)
 
                 if cell == '|':
-                    tile = Tile('support', (x, y), tile_size)
-                    self.tiles.add(tile)
+                    seaweed = Decor((x, y), tile_size, f'seaweeds\seaweed{random.randint(1, 9)}.png')
+                    self.seaweeds.add(seaweed)
 
                 if cell == '@':
                     player = Player((x, y))
                     self.player.add(player)
 
-                if cell == '%':
-                    obstacle = Obstacle((x, y), tile_size - 15)
-                    self.obstacles.add(obstacle)
+                if cell == '*':
+                    star = Decor((x, y), tile_size, 'coins.png')
+                    self.stars.add(star)
+                    self.stars_count += 1
 
     def scroll_x(self):
         player = self.player.sprite
         player_x = player.rect.centerx
         direction = player.direction.x
-
-        if player_x < width / 4 and direction < 0:
+        tiles = self.tiles.sprites()
+        if player_x < width / 4 and direction < 0 and tiles[0].rect.x + 4 < 1:
             self.world_shift = 4
             player.speed = 0
-        elif player_x > width / 4 * 3 and direction > 0:
+
+        elif player_x > width / 4 * 3 and direction > 0 and tiles[-1].rect.x - 4 >= 1280:
             self.world_shift = -4
             player.speed = 0
         else:
@@ -229,25 +226,10 @@ class Level:
             if sprite.rect.colliderect(player.rect):
                 if player.direction.x < 0:
                     player.rect.left = sprite.rect.right
-                    player.on_left = True
                     player.current_x = player.rect.left
                 elif player.direction.x > 0:
                     player.rect.right = sprite.rect.left
-                    player.on_right = True
                     player.current_x = player.rect.right
-
-        if player.on_left and (player.rect.left < player.current_x or player.direction.x >= 0):
-            player.on_left = False
-        if player.on_right and (player.rect.right > player.current_x or player.direction.x <= 0):
-            player.on_right = False
-
-        for sprite in self.obstacles.sprites():
-            if sprite.rect.colliderect(player.rect):
-                self.live()
-                if player.direction.x < 0:
-                    player.rect.left = sprite.rect.right + tile_size
-                elif player.direction.x > 0:
-                    player.rect.right = sprite.rect.left - tile_size
 
     def vertical_movement_collision(self):
         player = self.player.sprite
@@ -263,32 +245,19 @@ class Level:
                     player.rect.top = sprite.rect.bottom
                     player.direction.y = 0
 
+        for sprite in self.stars.sprites():
+            if player.rect.colliderect(pygame.rect.Rect(sprite.rect.x + 10, sprite.rect.y + 10, 20, 20)):
+                self.player_stars += 1
+                self.stars.remove_internal(sprite)
+
         if player.on_ground and (player.direction.y < 0 or player.direction.y > 1):
             player.on_ground = False
-
-        for sprite in self.obstacles.sprites():
-            if sprite.rect.colliderect(player.rect):
-                self.live()
-                if player.direction.y > 0:
-                    player.rect.bottom = sprite.rect.top - tile_size // 2
-                    if player.direction.x < 0:
-                        player.rect.left = sprite.rect.right + tile_size // 2
-                    elif player.direction.x >= 0:
-                        player.rect.right = sprite.rect.left - tile_size // 2
-                    player.direction.y = 0
-                elif player.direction.y < 0:
-                    player.rect.top = sprite.rect.bottom + tile_size // 2
-                    if player.direction.x < 0:
-                        player.rect.left = sprite.rect.right + tile_size // 2
-                    elif player.direction.x >= 0:
-                        player.rect.right = sprite.rect.left - tile_size // 2
-                    player.direction.y = 0
 
     def draw(self):
         self.tiles.update(self.world_shift)
         self.tiles.draw(self.display_surface)
-        self.obstacles.update(self.world_shift)
-        self.obstacles.draw(self.display_surface)
+        self.stars.update(self.world_shift)
+        self.stars.draw(self.display_surface)
         self.scroll_x()
 
         self.player.update()
@@ -296,14 +265,13 @@ class Level:
         self.vertical_movement_collision()
         self.player.draw(self.display_surface)
         for l in self.lives:
-            pygame.draw.rect(self.display_surface, 'red', l)
+            self.display_surface.blit(self.live_img, l)
+        self.seaweeds.update(self.world_shift)
+        self.seaweeds.draw(self.display_surface)
 
 
-tile_images = {
-    'ground': 'grey',
-    'support': 'lightgrey'
-}
-
+tile_images = {x: load_image(f'tiles\\tile0{str(x).rjust(2, "0")}.png') for x in range(21)}
+bg = load_image('background.png')
 level = Level(level, screen)
 
 running = True
@@ -312,7 +280,7 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    screen.fill((0, 0, 0))
+    screen.blit(bg, (0, 0))
     level.draw()
     pygame.display.flip()
     clock.tick(60)
