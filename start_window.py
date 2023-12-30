@@ -1,14 +1,16 @@
 import hashlib
-import math
 import os.path
 import sqlite3
+import sys
 import time
-
 import pygame
+from functions import *
 
 con = sqlite3.connect(os.path.join('data', 'UnderWater.sqlite'))
-
+icon = pygame.image.load(os.path.join('data', 'icon.png'))
+pygame.display.set_icon(icon)
 cur = con.cursor()
+start_frames = []
 
 SECRET_WORD = 'соль'
 
@@ -19,55 +21,6 @@ def hash_password(password):
 
 
 current_username = {'username': ''}
-
-
-class BaseLevel:
-    pass
-
-
-class Level1(BaseLevel):
-    def __init__(self):
-        super().__init__()
-        print('Левел в разработке')
-
-    def draw(self):
-        pass
-
-
-class Level2(BaseLevel):
-    def __init__(self):
-        super().__init__()
-        print('Левел в разработке')
-
-    def draw(self):
-        pass
-
-
-class Level3(BaseLevel):
-    def __init__(self):
-        super().__init__()
-        print('Левел в разработке')
-
-    def draw(self):
-        pass
-
-
-class Level4(BaseLevel):
-    def __init__(self):
-        super().__init__()
-        print('Левел в разработке')
-
-    def draw(self):
-        pass
-
-
-class Level5(BaseLevel):
-    def __init__(self):
-        super().__init__()
-        print('Левел в разработке')
-
-    def draw(self):
-        pass
 
 
 class InputLine:
@@ -82,14 +35,14 @@ class InputLine:
         self.enter = False
 
     def draw(self, screen: pygame.surface.Surface):
-        pygame.draw.rect(screen, '#ade8f4', self.rect)
-        pygame.draw.rect(screen, '#03045e', self.rect, width=3)
+        pygame.draw.rect(screen, '#5FB5CD', self.rect)
+        pygame.draw.rect(screen, '#011D2B', self.rect, width=3)
         if not self.enter and self.user_input == '':
-            self.inp_text = self.font.render(self.text, True, '#3c81f0')
+            self.inp_text = self.font.render(self.text, True, '#033F5D')
         elif self.password and self.user_input != '':
-            self.inp_text = self.font.render(len(self.user_input) * '*', True, '#03045e')
+            self.inp_text = self.font.render(len(self.user_input) * '*', True, '#011D2B')
         else:
-            self.inp_text = self.font.render(self.user_input, False, '#03045e')
+            self.inp_text = self.font.render(self.user_input, False, '#011D2B')
         self.text_rect = self.inp_text.get_rect(center=self.rect.center)
         self.draw_cursor(screen)
         screen.blit(self.inp_text, self.text_rect)
@@ -156,7 +109,7 @@ class BaseWindow:
     def __init__(self):
         pygame.init()
 
-        self.size = (800, 600)
+        self.size = (1280, 720)
 
         self.screen = pygame.display.set_mode(self.size)
         self.group_sprite = None
@@ -166,18 +119,27 @@ class BaseWindow:
 
 
 class MainWindow(BaseWindow):
-    def __init__(self):
+    def __init__(self, start=True):
+        global start_frames
         super().__init__()
-        self.screen.fill('#ade8f4')
-        pygame.display.set_caption('Главный экран')
+        self.bg_image = load_image('start_background.png')
+        pygame.display.set_caption('UnderWater')
+        if not start_frames:
+            self.frames = import_folder('data/start_screen')
+            start_frames = self.frames
+        else:
+            self.frames = start_frames
+        self.index = 0
+        self.current_image = self.frames[self.index]
+        self.start = start
 
-        btn_width, btn_height = 210, 70
-        btn_login_x, btn_login_y = self.size[0] // 2 - btn_width * 1.2, self.size[1] / 2 + btn_height / 5
-        btn_reg_x, btn_reg_y = self.size[0] // 2 + btn_width * 0.2, self.size[1] / 2 + btn_height / 5
-        btn_records_x, btn_records_y = self.size[0] // 2 - btn_width // 2, self.size[1] / 2 + btn_height * 1.7
+        btn_width, btn_height = 320, 110
+        btn_login_x, btn_login_y = self.size[0] / 4.9, self.size[1] / 2.28
+        btn_reg_x, btn_reg_y = self.size[0] / 1.8, self.size[1] / 2.28
+        btn_records_x, btn_records_y = self.size[0] // 2 - btn_width // 2, self.size[1] / 1.49
 
-        normal_bg, hovered_bg = '#48cae4', '#00b4d8'
-        normal_text, hovered_text = '#03045e', '#ffffff'
+        normal_bg, hovered_bg = '#078CB2', '#076682'
+        normal_text, hovered_text = '#011D2B', '#ffffff'
 
         self.btn_login = Button(btn_login_x, btn_login_y, btn_width, btn_height, 'Войти в аккаунт', normal_bg,
                                 hovered_bg, normal_text, hovered_text)
@@ -188,26 +150,39 @@ class MainWindow(BaseWindow):
 
         self.btn_group = [self.btn_login, self.btn_reg, self.btn_records]
 
+    def change_image(self):
+        self.index += 1
+        if self.index >= len(self.frames):
+            self.start = False
+        else:
+            self.current_image = self.frames[self.index]
+
     def display_text(self):
-        f = pygame.font.Font(os.path.join('data', 'Aguante-Regular.otf'), 90)
-        text = f.render('UNDERWATER', True, '#0077b6')
-        x, y = self.size[0] // 2 - text.get_width() // 2, self.size[1] // 2 - text.get_width() / 3.5
+        f = pygame.font.Font(os.path.join('data', 'IntroDemo-BlackCAPS.otf'), 123)
+        text = f.render('UNDERWATER', True, '#011D2B')
+        x, y = self.size[0] // 2 - text.get_width() // 2, self.size[1] // 6.4
         self.screen.blit(text, (x, y))
 
     def draw(self):
+        self.screen.blit(self.bg_image, (0, 0))
         self.display_text()
         for btn in self.btn_group:
             btn.draw(self.screen)
+        if self.start:
+            self.screen.blit(self.current_image, (0, 0))
 
 
 class LoginWindow(BaseWindow):
     def __init__(self):
         super().__init__()
-        pygame.display.set_caption('Вход')
+        pygame.display.set_caption('UnderWater')
 
-        self.screen.fill('#ade8f4')
+        self.bg_image = load_image('start_background.png')
 
-        inp_width, inp_height = 320, 50
+        normal_bg, hovered_bg = '#078CB2', '#076682'
+        normal_text, hovered_text = '#011D2B', '#ffffff'
+
+        inp_width, inp_height = 380, 55
 
         inp_user_name_x, inp_user_name_y = self.size[0] // 2 - inp_width // 2, self.size[1] / 10 * 3.5
         inp_password_x, inp_password_y = self.size[0] // 2 - inp_width // 2, self.size[1] / 10 * 5
@@ -217,17 +192,17 @@ class LoginWindow(BaseWindow):
 
         self.inp_group = (self.user_name, self.password)
 
-        btn_width, btn_height = 220, 50
+        btn_width, btn_height = 260, 60
         self.enter_btn = Button(self.size[0] // 2 - btn_width // 2, self.size[1] // 4 * 2.9, btn_width, btn_height,
-                                'Войти', '#48cae4', '#00b4d8', '#03045e', '#ffffff')
-        self.exit_btn = Button(20, 20, 50, 50, '', '#48cae4', '#00b4d8', '#03045e', '#ffffff')
+                                'Войти', normal_bg, hovered_bg, normal_text, hovered_text)
+        self.exit_btn = Button(20, 20, 50, 50, '', normal_bg, hovered_bg, normal_text, hovered_text)
         self.error = False
         self.error_text = ''
 
     def display_text(self):
-        f = pygame.font.Font(os.path.join('data', 'better-vcr-5.2.ttf'), 50)
-        text = f.render('Вход', True, '#0077b6')
-        x, y = self.size[0] / 2 - text.get_width() / 2, text.get_height() * 2
+        f = pygame.font.Font(os.path.join('data', 'better-vcr-5.2.ttf'), 60)
+        text = f.render('Вход', True, '#011D2B')
+        x, y = self.size[0] / 2 - text.get_width() / 2, text.get_height() * 1.6
         self.screen.blit(text, (x, y))
 
     def exit_btn_draw(self):
@@ -240,7 +215,7 @@ class LoginWindow(BaseWindow):
         self.screen.blit(self.image, (self.rect.x, self.rect.y))
 
     def draw(self):
-        self.screen.fill('#ade8f4')
+        self.screen.blit(self.bg_image, (0, 0))
         self.display_text()
         for i in self.inp_group:
             i.draw(self.screen)
@@ -248,8 +223,8 @@ class LoginWindow(BaseWindow):
         self.exit_btn_draw()
         if self.error:
             f = pygame.font.Font(os.path.join('data', 'better-vcr-5.2.ttf'), 15)
-            text = f.render(self.error_text, True, '#0077b6')
-            x, y = self.size[0] // 2 - text.get_width() // 2, self.size[1] // 2 + text.get_height() * 6.8
+            text = f.render(self.error_text, True, '#ffffff')
+            x, y = self.size[0] // 2 - text.get_width() // 2, self.size[1] // 2 + text.get_height() * 7.5
             self.screen.blit(text, (x, y))
 
     def check_input(self):
@@ -288,11 +263,11 @@ class LoginWindow(BaseWindow):
 class RegistrationWindow(BaseWindow):
     def __init__(self):
         super().__init__()
-        pygame.display.set_caption('Регистрация')
+        pygame.display.set_caption('UnderWater')
 
-        self.screen.fill('#ade8f4')
+        self.bg_image = load_image('start_background.png')
 
-        inp_width, inp_height = 320, 50
+        inp_width, inp_height = 380, 55
 
         inp_user_name_x, inp_user_name_y = self.size[0] // 2 - inp_width // 2, self.size[1] / 10 * 2.5
         inp_password_x, inp_password_y = self.size[0] // 2 - inp_width // 2, self.size[1] / 10 * 4
@@ -305,12 +280,12 @@ class RegistrationWindow(BaseWindow):
 
         self.error_text = ''
 
-        btn_width, btn_height = 220, 50
+        btn_width, btn_height = 260, 60
         btn_x, btn_y = self.size[0] / 6 * 2, self.size[1] / 6 * 4
-        normal_bg, hovered_bg = '#48cae4', '#00b4d8'
-        normal_text, hovered_text = '#03045e', '#ffffff'
+        normal_bg, hovered_bg = '#078CB2', '#076682'
+        normal_text, hovered_text = '#011D2B', '#ffffff'
 
-        self.btn_reg = Button(self.size[0] // 2 - btn_width // 2, self.size[1] // 4 * 3.2, btn_width, btn_height,
+        self.btn_reg = Button(self.size[0] // 2 - btn_width // 2, self.size[1] // 4 * 3, btn_width, btn_height,
                               'Регистрация', normal_bg, hovered_bg,
                               normal_text, hovered_text)
         self.exit_btn = Button(20, 20, 50, 50, '', normal_bg, hovered_bg, normal_text, hovered_text)
@@ -321,8 +296,8 @@ class RegistrationWindow(BaseWindow):
 
     def display_text(self):
         f = pygame.font.Font(os.path.join('data', 'better-vcr-5.2.ttf'), 45)
-        text = f.render('Регистрация', True, '#0077b6')
-        x, y = self.size[0] / 2 - text.get_width() / 2, self.size[1] / 2 - text.get_width() / 1.5
+        text = f.render('Регистрация', True, '#011D2B')
+        x, y = self.size[0] / 2 - text.get_width() / 2, text.get_height() * 1.5
         self.screen.blit(text, (x, y))
 
     def exit_btn_draw(self):
@@ -336,12 +311,12 @@ class RegistrationWindow(BaseWindow):
 
     def error_message(self):
         if self.error_text:
-            text = self.font.render(self.error_text, True, '#3c81f0')
-            x, y = self.size[0] // 2 - text.get_width() // 2, self.size[1] // 4 * 3
+            text = self.font.render(self.error_text, True, '#ffffff')
+            x, y = self.size[0] // 2 - text.get_width() // 2, self.size[1] // 4 * 2.8
             self.screen.blit(text, (x, y))
 
     def draw(self):
-        self.screen.fill('#ade8f4')
+        self.screen.blit(self.bg_image, (0, 0))
         self.display_text()
         for i in self.inp_group:
             i.draw(self.screen)
@@ -402,7 +377,7 @@ class Table:
         data = sorted(data, key=lambda x: (-x[1], x[0]))
         self.data = {x: y for x, y in data}
 
-        self.col_user_width, self.col_rec_width, self.row_height = 400, 200, 70
+        self.col_user_width, self.col_rec_width, self.row_height = 450, 220, 80
         self.coords = {}
 
         for i in range(len(self.data)):
@@ -411,7 +386,7 @@ class Table:
     def update(self, y_shift):
         if y_shift > 0 and list(self.coords.keys())[0][1] == 0:
             return False
-        elif y_shift < 0 and list(self.coords.keys())[-1][1] < 350:
+        elif y_shift < 0 and list(self.coords.keys())[-1][1] < self.row_height * 5:
             return False
         else:
             old_coords = self.coords
@@ -424,19 +399,19 @@ class Table:
 class RecordsWindow(BaseWindow):
     def __init__(self):
         super().__init__()
-        pygame.display.set_caption('Рекорды')
-        self.screen.fill('#ade8f4')
+        pygame.display.set_caption('UnderWater')
+        self.bg_image = load_image('start_background.png')
         self.table = Table(self.records_data())
 
-        normal_bg, hovered_bg = '#48cae4', '#00b4d8'
-        normal_text, hovered_text = '#03045e', '#ffffff'
+        normal_bg, hovered_bg = '#078CB2', '#076682'
+        normal_text, hovered_text = '#011D2B', '#ffffff'
         self.exit_btn = Button(20, 20, 50, 50, '', normal_bg, hovered_bg, normal_text, hovered_text)
 
         self.font = pygame.font.Font(os.path.join('data', 'better-vcr-5.2.ttf'), 15)
 
     def display_text(self):
         f = pygame.font.Font(os.path.join('data', 'better-vcr-5.2.ttf'), 40)
-        text = f.render('Рекорды', True, '#0077b6')
+        text = f.render('Рекорды', True, '#011D2B')
         x, y = self.size[0] / 2 - text.get_width() / 2, text.get_height() / 1.5
         self.screen.blit(text, (x, y))
 
@@ -457,26 +432,33 @@ class RecordsWindow(BaseWindow):
         pygame.draw.rect(self.screen, color, rect, width=2)
 
     def table_draw(self):
-        color = '#03045e'
-        x_shift, y_shift = (135, 160)
+        bg_color = '#5FB5CD'
+        color = '#011D2B'
         col_user_width, col_rec_width = self.table.col_user_width, self.table.col_rec_width
         row_height = self.table.row_height
+        num_col_width = 60
+        table_width, table_height = col_user_width + col_rec_width + num_col_width, row_height * 5 + num_col_width
+        x_shift, y_shift = (self.screen.get_width() / 2 - table_width / 2, 160)
 
-        pygame.draw.rect(self.screen, color, (x_shift - 60, y_shift - 60, 660, 410), 5)
-        self.text_in_rect(x_shift - 60, y_shift - 60, 60, 60, '', color)
-        self.text_in_rect(x_shift, y_shift - 60, col_user_width, 60, 'Имя пользователя', color)
-        self.text_in_rect(x_shift + col_user_width, y_shift - 60, col_rec_width, 60, 'Прогресс', color)
+        pygame.draw.rect(self.screen, bg_color,
+                         (x_shift, y_shift - num_col_width, table_width, table_height))
+        pygame.draw.rect(self.screen, color,
+                         (x_shift, y_shift - num_col_width, table_width, table_height), 5)
+        self.text_in_rect(x_shift, y_shift - num_col_width, num_col_width, num_col_width, '', color)
+        self.text_in_rect(x_shift + num_col_width, y_shift - num_col_width, col_user_width, num_col_width, 'Имя пользователя', color)
+        self.text_in_rect(x_shift + num_col_width + col_user_width, y_shift - num_col_width, col_rec_width, num_col_width, 'Прогресс',
+                          color)
         coords = self.table.coords
         for n, i in enumerate(coords.keys()):
             x, y = i
             if y < 0:
                 continue
-            elif y >= 350:
+            elif y >= row_height * 5:
                 break
             username = coords[i]
-            self.text_in_rect(x_shift - 60, y_shift + y, 60, row_height, str(n + 1), color)
-            self.text_in_rect(x_shift, y_shift + y, col_user_width, row_height, username, color)
-            self.text_in_rect(x_shift + col_user_width, y_shift + y, col_rec_width, row_height,
+            self.text_in_rect(x_shift, y_shift + y, num_col_width, row_height, str(n + 1), color)
+            self.text_in_rect(x_shift + num_col_width, y_shift + y, col_user_width, row_height, username, color)
+            self.text_in_rect(x_shift + num_col_width + col_user_width, y_shift + y, col_rec_width, row_height,
                               self.table.data[username], color)
         if len(coords.keys()) < 5:
             for j in range(len(coords.keys()), 5):
@@ -487,7 +469,7 @@ class RecordsWindow(BaseWindow):
                                  width=2)
 
     def draw(self):
-        self.screen.fill('#ade8f4')
+        self.screen.blit(self.bg_image, (0, 0))
         self.display_text()
         self.table_draw()
         self.exit_btn_draw()
@@ -500,19 +482,20 @@ class RecordsWindow(BaseWindow):
 class LevelMenu(BaseWindow):
     def __init__(self):
         super().__init__()
-        pygame.display.set_caption('Выбор уровня')
-        self.screen.fill('#ade8f4')
+        pygame.display.set_caption('UnderWater')
+        self.bg_image = load_image('start_background.png')
 
-        btn_width = btn_height = 100
+        btn_width = btn_height = 140
 
-        btn_level1_x, btn_level1_y = self.size[0] / 8 * 1.5, self.size[1] / 4.5
-        btn_level2_x, btn_level2_y = self.size[0] / 8 * 3.5, self.size[1] / 4.5
-        btn_level3_x, btn_level3_y = self.size[0] / 8 * 5.5, self.size[1] / 4.5
-        btn_level4_x, btn_level4_y = self.size[0] / 8 * 2.5, self.size[1] / 6 * 3.2
-        btn_level5_x, btn_level5_y = self.size[0] / 8 * 4.5, self.size[1] / 6 * 3.2
+        k_x, k_y = 128, 1
+        btn_level1_x, btn_level1_y = self.size[0] / k_x * 21.5, self.size[1] / 4.5
+        btn_level2_x, btn_level2_y = self.size[0] / k_x * 57, self.size[1] / 4.5
+        btn_level3_x, btn_level3_y = self.size[0] / k_x * 92.5, self.size[1] / 4.5
+        btn_level4_x, btn_level4_y = self.size[0] / k_x * 40, self.size[1] / 6 * 3.2
+        btn_level5_x, btn_level5_y = self.size[0] / k_x * 74, self.size[1] / 6 * 3.2
 
-        normal_bg, hovered_bg = '#48cae4', '#00b4d8'
-        normal_text, hovered_text = '#03045e', '#ffffff'
+        normal_bg, hovered_bg = '#078CB2', '#076682'
+        normal_text, hovered_text = '#011D2B', '#ffffff'
 
         self.btn_level1 = Button(btn_level1_x, btn_level1_y, btn_width, btn_height, ' 1 ', normal_bg, hovered_bg,
                                  normal_text, hovered_text)
@@ -525,13 +508,13 @@ class LevelMenu(BaseWindow):
         self.btn_level5 = Button(btn_level5_x, btn_level5_y, btn_width, btn_height, ' 5 ', normal_bg, hovered_bg,
                                  normal_text, hovered_text)
 
-        self.exit_btn = Button(20, 20, 50, 50, '', '#48cae4',
-                               '#00b4d8', '#03045e', '#ffffff')
+        self.exit_btn = Button(20, 20, 50, 50, '', normal_bg, hovered_bg, normal_text, hovered_text)
 
         self.group_btn = (
             self.btn_level1, self.btn_level2, self.btn_level3, self.btn_level4, self.btn_level5)
 
     def draw(self):
+        self.screen.blit(self.bg_image, (0, 0))
         self.exit_btn_draw()
         for i in self.group_btn:
             i.draw(self.screen)
@@ -552,7 +535,7 @@ class LevelMenu(BaseWindow):
 
     def draw_star(self, number, rect):
         count_star = self.count_star(number)
-        star_coords = [(-7.5, 15), (27.5, 10), (77.5, 15)]
+        star_coords = [(-13, 15), (40, 10), (108, 15)]
         empty_img = pygame.image.load(os.path.join('data', 'empty_star.png'))
         full_img = pygame.image.load(os.path.join('data', 'full_star.png'))
 
@@ -573,9 +556,8 @@ class LevelMenu(BaseWindow):
         return sum(res)
 
 
-if __name__ == '__main__':
-    current_window = MainWindow()
-    # current_window = LevelMenu()
+def start_window(current_window=MainWindow):
+    current_window = current_window()
     running = True
     clock = pygame.time.Clock()
     FPS = 60
@@ -583,6 +565,7 @@ if __name__ == '__main__':
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+                return False
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if isinstance(current_window, MainWindow):
                     if current_window.btn_login.is_clicked():
@@ -596,7 +579,7 @@ if __name__ == '__main__':
                         if current_window.reg():
                             current_window = LevelMenu()
                     elif current_window.exit_btn.is_clicked():
-                        current_window = MainWindow()
+                        current_window = MainWindow(start=False)
                     else:
                         for input_line in current_window.inp_group:
                             if input_line.is_clicked():
@@ -608,7 +591,7 @@ if __name__ == '__main__':
                         if not current_window.check_input():
                             current_window = LevelMenu()
                     elif current_window.exit_btn.is_clicked():
-                        current_window = MainWindow()
+                        current_window = MainWindow(start=False)
                     else:
                         for input_line in current_window.inp_group:
                             if input_line.is_clicked():
@@ -617,23 +600,25 @@ if __name__ == '__main__':
                                 input_line.enter = False
                 elif isinstance(current_window, RecordsWindow):
                     if current_window.exit_btn.is_clicked():
-                        current_window = MainWindow()
+                        current_window = MainWindow(start=False)
                     elif event.button in (4, 5):
                         shift = current_window.table.row_height
                         current_window.table.update(shift if event.button == 4 else -shift)
                 elif isinstance(current_window, LevelMenu):
                     if current_window.exit_btn.is_clicked():
                         current_window = LoginWindow()
-                    elif current_window.btn_level1.is_clicked():
-                        current_window = Level1()
-                    elif current_window.btn_level2.is_clicked():
-                        current_window = Level2()
-                    elif current_window.btn_level3.is_clicked():
-                        current_window = Level3()
-                    elif current_window.btn_level4.is_clicked():
-                        current_window = Level4()
-                    elif current_window.btn_level5.is_clicked():
-                        current_window = Level5()
+                    else:
+                        if current_window.btn_level1.is_clicked():
+                            return 'level1'
+                        elif current_window.btn_level2.is_clicked():
+                            return 'level1'
+                        elif current_window.btn_level3.is_clicked():
+                            return 'level1'
+                        elif current_window.btn_level4.is_clicked():
+                            return 'level1'
+                        elif current_window.btn_level5.is_clicked():
+                            return 'level1'
+                        sys.exit()
             elif event.type == pygame.KEYDOWN:
                 if isinstance(current_window, RegistrationWindow):
                     if event.key == pygame.K_RETURN:
@@ -655,7 +640,10 @@ if __name__ == '__main__':
                         for input_line in current_window.inp_group:
                             if input_line.enter:
                                 input_line.input(event)
-
+        if isinstance(current_window, MainWindow):
+            if current_window.start:
+                current_window.change_image()
         current_window.draw()
         pygame.display.flip()
+        clock.tick(25)
     pygame.quit()
