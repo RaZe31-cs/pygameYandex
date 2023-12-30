@@ -21,12 +21,13 @@ def load_level(filename):
 
 
 class Sounds:
-    def __init__(self, path_running=None, path_jump=None, path_drop=None, path_star=None, path_take_a_life=None):
+    def __init__(self, path_running=None, path_jump=None, path_drop=None, path_star=None, path_take_a_life=None, path_loading_start_screen=None):
         self.set_sound_running(path_running)
         self.set_sound_star(path_star)
         self.set_sound_jump(path_jump)
         self.set_sound_drop(path_drop)
         self.set_sound_take_a_life(path_take_a_life)
+        self.set_sound_loading_start_screen(path_loading_start_screen)
 
     def set_sound_running(self, path):
         self.music_running = pygame.mixer.music
@@ -47,6 +48,10 @@ class Sounds:
 
     def set_sound_take_a_life(self, path):
         self.sound_take_a_life = pygame.mixer.Sound(os.path.join('data', 'sound', path))
+
+    def set_sound_loading_start_screen(self, path):
+        self.music_loading_start_screen = pygame.mixer.Sound(os.path.join('data', 'sound', path))
+        self.music_loading_start_screen.set_volume(0.05)
 
         
 
@@ -476,6 +481,13 @@ def game():
 
 
 pygame.init()
+sounds = Sounds(path_jump='sound_jump.mp3',
+                path_drop='sound_drop.mp3',
+                path_running='sound_running.mp3',
+                path_star='sound_star.mp3',
+                path_take_a_life='sound_take_a_life.mp3',
+                path_loading_start_screen='sound_loading_screen.mp3')
+sounds.music_loading_start_screen.play()
 icon = pygame.image.load(os.path.join('data', 'icon.png'))
 pygame.display.set_icon(icon)
 pygame.display.set_caption('UnderWater')
@@ -484,20 +496,16 @@ level = load_level(f'levels/{lvl}.csv')
 len_level_x = len(level[0])
 len_level_y = len(level)
 tile_size = 40
+tile_images = {x: load_image(os.path.join('tiles', f'tile0{str(x).rjust(2, "0")}.png')) for x in range(21)}
 size = width, height = 1280, len(level) * tile_size
 screen = pygame.display.set_mode(size)
 clock = pygame.time.Clock()
 FPS = 10
 level = Level(level, screen)
-tile_images = {x: load_image(os.path.join('tiles', f'tile0{str(x).rjust(2, "0")}.png')) for x in range(21)}
-level = Level(level, screen)
 bg_photo = pygame.transform.scale(load_image('background.png'), (2000, 720))
 bg = BackGround(bg_photo)
 
-sounds = Sounds(path_jump='sound_jump.mp3',
-                path_drop='sound_drop.mp3',
-                path_running='sound_running.mp3',
-                path_star='sound_star.mp3',
-                path_take_a_life='sound_take_a_life.mp3')
+
+
 
 game()
