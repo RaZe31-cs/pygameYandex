@@ -312,6 +312,7 @@ class WinWindow:
                                hovered_bg, normal_text, hovered_text)
 
         self.btn_group = [self.btn_menu, self.btn_again, self.btn_next]
+        self.finish = False
 
     def display_text(self):
         f = pygame.font.Font(os.path.join('data', 'better-vcr-5.2.ttf'), 45)
@@ -365,8 +366,8 @@ class WinWindow:
                           'SELECT id FROM Players where username = ?)', (current_username['username'],)).fetchone()
         cur.execute(f'update Levels_Progress set level{level}_star = ?'
                     f'WHERE player_id = (SELECT id FROM Players where username = ?)',
-                    (current_username['username'], max(number, int(now[0]))))
-        print(max(number, int(now[0])))
+                    (max(number, int(now[0])), current_username['username']))
+        # print(max(number, int(now[0])))
         con.commit()
 
     def count_star(self):
@@ -377,7 +378,9 @@ class WinWindow:
             res += 1
         if int(self.text_time.split(':')[-1]) < 60:
             res += 1
-        self.db_stars(res, level.lvl_num)
+        if not self.finish:
+            self.db_stars(res, level.lvl_num)
+            self.finish = True
         return res
 
     def draw(self):
@@ -405,6 +408,7 @@ class Level:
         self.start_time = datetime.timedelta(hours=time.hour, minutes=time.minute, seconds=time.second)
         self.finish_time = self.start_time
         self.lvl_num = lvl
+        self.end = False
 
     def setup_level(self, layout):
         self.tiles = pygame.sprite.Group()
@@ -526,7 +530,9 @@ class Level:
             player.on_ground = False
 
     def draw_end(self):
-        self.win_window = WinWindow(self.display_surface)
+        if not self.end:
+            self.win_window = WinWindow(self.display_surface)
+            self.end = True
         self.win_window.draw()
 
     def draw(self):
