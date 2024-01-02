@@ -550,13 +550,15 @@ class LevelMenu(BaseWindow):
             img = empty_img_big if q == 1 else empty_img
             self.screen.blit(img, (rect.x + star_x, rect.y + rect.h + star_y))
 
-    def count_star(self, number) -> int:
+    def count_star(self, number):
         res = cur.execute(f'SELECT level{number + 1}_star FROM Levels_Progress WHERE player_id = ('
                           'SELECT id FROM Players where username = ?)', (current_username['username'],)).fetchone()
         return sum(res)
 
 
-def start_window(current_window=MainWindow):
+def start_window(current_window=MainWindow, username=None):
+    if username:
+        current_username['username'] = username
     current_window = current_window()
     running = True
     clock = pygame.time.Clock()
@@ -609,15 +611,15 @@ def start_window(current_window=MainWindow):
                         current_window = LoginWindow()
                     else:
                         if current_window.btn_level1.is_clicked():
-                            return 'level1'
+                            return 1
                         elif current_window.btn_level2.is_clicked():
-                            return 'level1'
+                            return 1
                         elif current_window.btn_level3.is_clicked():
-                            return 'level1'
+                            return 1
                         elif current_window.btn_level4.is_clicked():
-                            return 'level1'
+                            return 1
                         elif current_window.btn_level5.is_clicked():
-                            return 'level1'
+                            return 1
                         sys.exit()
             elif event.type == pygame.KEYDOWN:
                 if isinstance(current_window, RegistrationWindow):
