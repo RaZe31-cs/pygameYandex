@@ -324,6 +324,7 @@ class WinWindow:
         f2 = pygame.font.Font(os.path.join('data', 'better-vcr-5.2.ttf'), 20)
         time_delta = level.finish_time - level.start_time
         time_delta = time_delta.total_seconds()
+        print(time_delta)
         self.text_time = f'{str(int(time_delta // 60)).rjust(2, "0")}:{str(int(time_delta % 60)).rjust(2, "0")}'
         text_time = f2.render(self.text_time, True, '#011D2B')
         self.text_star = f'{level.player_stars}/{level.stars_count}'
@@ -376,7 +377,7 @@ class WinWindow:
             res += 1
         if self.text_enemies.split('/')[0] == self.text_enemies.split('/')[1]:
             res += 1
-        if int(self.text_time.split(':')[-1]) < 60:
+        if int(self.text_time.split(':')[0]) * 60  + int(self.text_time.split(':')[-1]) < 60:
             res += 1
         if not self.finish:
             self.db_stars(res, level.lvl_num)
