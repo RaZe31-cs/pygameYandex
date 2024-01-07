@@ -320,31 +320,40 @@ class WinWindow:
         self.screen.blit(text, (x, y))
 
         f2 = pygame.font.Font(os.path.join('data', 'better-vcr-5.2.ttf'), 20)
+
         time_delta = level.finish_time - level.start_time
         time_delta = time_delta.total_seconds()
         self.text_time = f'{str(int(time_delta // 60)).rjust(2, "0")}:{str(int(time_delta % 60)).rjust(2, "0")}'
         text_time = f2.render(self.text_time, True, '#011D2B')
+        x_time = self.screen.get_width() // 2 - text_time.get_width() // 3.5
+        y = self.screen.get_height() // 2 + text_time.get_height() * 2.5
+        time_img = pygame.image.load(os.path.join('data', 'win_window', 'clock.png'))
+        self.screen.blit(text_time, (x_time, y))
+        self.screen.blit(time_img, (x_time - 1.2 * time_img.get_width(), y - time_img.get_height() // 4))
+
         self.text_star = f'{level.player_stars}/{level.stars_count}'
         text_star = f2.render(self.text_star, True, '#011D2B')
+        x_stars = self.screen.get_width() // 2 - text_time.get_width() * 2.7
+        star_img = pygame.image.load(os.path.join('data', 'win_window', 'coins.png'))
+        self.screen.blit(text_star, (x_stars, y))
+        self.screen.blit(star_img, (x_stars - 1.2 * star_img.get_width(), y - star_img.get_height() // 4))
+
         self.text_enemies = f'{level.enemies_count - len(level.enemies)}/{level.enemies_count}'
         text_enemies = f2.render(self.text_enemies, True, '#011D2B')
-        x_time = self.screen.get_width() // 2 - text_time.get_width() // 2
-        x_stars = self.screen.get_width() // 2 - text_time.get_width() * 2.7
-        x_enemies = self.screen.get_width() // 2 + text_time.get_width() * 2
-        y = self.screen.get_height() // 2 + text_time.get_height() * 2.5
-        self.screen.blit(text_time, (x_time, y))
-        self.screen.blit(text_star, (x_stars, y))
+        x_enemies = self.screen.get_width() // 2 + text_time.get_width() * 2.3
+        enemy_img = pygame.image.load(os.path.join('data', 'win_window', 'dead_fish.png'))
         self.screen.blit(text_enemies, (x_enemies, y))
+        self.screen.blit(enemy_img, (x_enemies - 1.2 * enemy_img.get_width(), y - enemy_img.get_height() // 4))
 
     def draw_star(self):
         count_star = self.count_star()
-        empty_img = pygame.image.load(os.path.join('data', 'empty_star.png'))
-        full_img = pygame.image.load(os.path.join('data', 'full_star.png'))
+        empty_img = pygame.image.load(os.path.join('data', 'win_window', 'empty_star.png'))
+        full_img = pygame.image.load(os.path.join('data', 'win_window', 'full_star.png'))
 
-        empty_img_big = pygame.image.load(os.path.join('data', 'empty_star_big.png'))
-        full_img_big = pygame.image.load(os.path.join('data', 'full_star_big.png'))
+        empty_img_big = pygame.image.load(os.path.join('data', 'win_window', 'empty_star_big.png'))
+        full_img_big = pygame.image.load(os.path.join('data', 'win_window', 'full_star_big.png'))
 
-        star_coords = [(self.screen.get_width() // 2 - 1.75 * empty_img_big.get_width(),
+        star_coords = [(self.screen.get_width() // 2 - 1.8 * empty_img_big.get_width(),
                         self.screen.get_height() // 2 - empty_img_big.get_height()), (
                        self.screen.get_width() // 2 - empty_img_big.get_width() // 2,
                        self.screen.get_height() // 2 - empty_img_big.get_height()),
@@ -365,7 +374,11 @@ class WinWindow:
         cur.execute(f'update Levels_Progress set level{level}_star = ?'
                     f'WHERE player_id = (SELECT id FROM Players where username = ?)',
                     (max(number, int(now[0])), current_username['username']))
-        # print(max(number, int(now[0])))
+        if int(now[0]) == 0 and number != 0:
+            progress = int(cur.execute(f'SELECT progress FROM Players WHERE username = ?', (current_username['username'],)).fetchone()[0])
+            cur.execute(f'update Players set progress = ?'
+                        f'WHERE username = ?',
+                        (progress + 1, current_username['username']))
         con.commit()
 
     def count_star(self):
@@ -437,7 +450,7 @@ class Level:
                     self.player.add(player)
 
                 if cell == '%':
-                    enemy = Enemy((x, y), random.choice(['fish1', 'fish2', 'fish3', 'fish4']))
+                    enemy = Enemy((x, y), random.choice(os.listdir('data/enemies')[1:]))
                     self.enemies.add(enemy)
                     self.enemies_count += 1
 

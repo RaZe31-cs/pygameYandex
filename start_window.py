@@ -348,7 +348,7 @@ class RegistrationWindow(BaseWindow):
         try:
             cur.execute("""
             INSERT INTO Players(username, password, progress) VALUES(?, ?, ?)
-            """, (username, password, 1))
+            """, (username, password, 0))
             id = cur.execute("""SELECT id FROM Players WHERE username = ?""", (username,)).fetchone()
             cur.execute("""
             INSERT INTO Levels_Progress(player_id, level1_star, level2_star, level3_star, level4_star, level5_star) 
