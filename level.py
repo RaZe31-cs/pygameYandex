@@ -89,7 +89,7 @@ class Player(pygame.sprite.Sprite):
         self.direction = pygame.math.Vector2(0, 0)
         self.speed = 4
         self.gravity = 0.15
-        self.jump_speed = -5.7
+        self.jump_speed = -6.8
         self.hurts = 0
 
         self.on_ground = False
@@ -192,9 +192,7 @@ class BackGround:
         self.word_shift += level.world_shift
         if level.world_shift:
             self.x = 0 + self.word_shift
-            screen.blit(self.path, (self.x / 20, 0))
-        else:
-            screen.blit(self.path, (self.x / 20, 0))
+        screen.blit(self.path, (self.x / 20, 0))
 
 
 class Enemy(pygame.sprite.Sprite):
@@ -324,7 +322,6 @@ class WinWindow:
         f2 = pygame.font.Font(os.path.join('data', 'better-vcr-5.2.ttf'), 20)
         time_delta = level.finish_time - level.start_time
         time_delta = time_delta.total_seconds()
-        print(time_delta)
         self.text_time = f'{str(int(time_delta // 60)).rjust(2, "0")}:{str(int(time_delta % 60)).rjust(2, "0")}'
         text_time = f2.render(self.text_time, True, '#011D2B')
         self.text_star = f'{level.player_stars}/{level.stars_count}'
@@ -620,7 +617,7 @@ size = width, height = 1280, len(level) * tile_size
 screen = pygame.display.set_mode(size)
 clock = pygame.time.Clock()
 FPS = 10
-tile_images = {x: load_image(os.path.join('tiles', f'tile0{str(x).rjust(2, "0")}.png')) for x in range(21)}
+tile_images = {x: load_image(os.path.join('tiles', f'tile0{str(x).rjust(2, "0")}.png')) for x in range(53)}
 level = Level(level, screen, lvl)
 bg_photo = pygame.transform.scale(load_image('background.png'), (2000, 720))
 bg = BackGround(bg_photo)

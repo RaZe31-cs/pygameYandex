@@ -613,7 +613,7 @@ def start_window(current_window=MainWindow, username=None):
                         if current_window.btn_level1.is_clicked():
                             return 1
                         elif current_window.btn_level2.is_clicked():
-                            return 1
+                            return 2
                         elif current_window.btn_level3.is_clicked():
                             return 1
                         elif current_window.btn_level4.is_clicked():
