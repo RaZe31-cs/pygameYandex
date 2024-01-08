@@ -420,6 +420,15 @@ class Level:
         self.finish_time = self.start_time
         self.lvl_num = lvl
         self.end = False
+        self.pause = False
+        normal_bg, hovered_bg = '#078CB2', '#076682'
+        normal_text, hovered_text = '#011D2B', '#ffffff'
+
+        self.btn_pause = Button(width / 1.045, 5, 50, 50, '', normal_bg, hovered_bg, normal_text, hovered_text)
+        self.btn_menu = Button(width / 2 / 1.7, height / 1.82, 70, 50, 'Меню', normal_bg, hovered_bg, normal_text, hovered_text)
+        self.btn_continue = Button(width / 2.25 , height / 1.82, 150, 50, 'Продолжить', normal_bg, hovered_bg, normal_text, hovered_text)
+        self.btn_again = Button(width / 1.57, height / 1.82, 100, 50, 'Заново', normal_bg, hovered_bg, normal_text, hovered_text)
+        self.group_pause_btn = (self.btn_menu, self.btn_continue, self.btn_again)
 
     def setup_level(self, layout):
         self.tiles = pygame.sprite.Group()
@@ -546,19 +555,56 @@ class Level:
             self.end = True
         self.win_window.draw()
 
+    def btn_pause_image(self, screen: pygame.surface.Surface):
+        image = load_image('menu.png')
+        x_center, y_center = self.btn_pause.rect.center
+        width_image, height_image = image.get_width(), image.get_height()
+        screen.blit(image, (x_center - width_image / 2, y_center - height_image / 2))
+
+    def draw_pause(self, screen):
+        width_pause_win = width / 2
+        height_pause_win = height / 2
+        x_main, y_main = width / 2 - width_pause_win / 2, height / 2 - height_pause_win / 2
+        rect = pygame.rect.Rect(x_main, y_main, width_pause_win, height_pause_win)
+        pygame.draw.rect(screen, '#5FB5CD', rect, 0, 10) # основное меню
+        pygame.draw.rect(screen, '#0c118a', rect, 7, 10) # рамка
+
+        text_number_level = 'Level ' + str(lvl)
+        f1 = pygame.font.Font(None, 85)
+        text_number_level = f1.render(text_number_level, True, '#011D2B')
+        x_text, y_text = rect.centerx - text_number_level.get_width() / 2, rect.centery / 1.35
+        screen.blit(text_number_level, (x_text, y_text))
+
+        for i in self.group_pause_btn:
+            i.draw(screen)
+        
+
+
+        
+
+
     def draw(self):
         self.tiles.update(self.world_shift)
         self.tiles.draw(self.display_surface)
+
         self.stars.update(self.world_shift)
         self.stars.draw(self.display_surface)
         self.scroll_x()
 
+        self.seaweeds.update(self.world_shift)
+        self.seaweeds.draw(self.display_surface)
+
         if self.player.sprite.end:
-            self.seaweeds.update(self.world_shift)
             if self.start_time == self.finish_time:
                 time = datetime.datetime.now().time()
                 self.finish_time = datetime.timedelta(hours=time.hour, minutes=time.minute, seconds=time.second)
             self.draw_end()
+        elif self.pause:
+            self.enemies.draw(self.display_surface)
+            self.player.draw(self.display_surface)
+            self.btn_pause.draw(self.display_surface)
+            self.btn_pause_image(self.display_surface)
+            self.draw_pause(self.display_surface)
         else:
             self.enemies.update(self.world_shift)
             for obstacle in self.obstacles:
@@ -568,10 +614,11 @@ class Level:
             self.vertical_movement_collision()
             self.enemies.draw(self.display_surface)
             self.player.draw(self.display_surface)
-            for l in self.lives:
+            
+            self.btn_pause.draw(self.display_surface)
+            self.btn_pause_image(self.display_surface)
+        for l in self.lives: 
                 self.display_surface.blit(self.live_img, l)
-            self.seaweeds.update(self.world_shift)
-            self.seaweeds.draw(self.display_surface)
 
 
 def game():
@@ -584,7 +631,7 @@ def game():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if isinstance(level, LossWindow):
                     if level.btn_again.is_clicked():
-                        level = Level(load_level(f'levels/level{lvl}.csv'), screen)
+                        level = Level(load_level(f'levels/level{lvl}.csv'), screen, lvl)
                     elif level.btn_menu.is_clicked():
                         lvl = start_window(current_window=LevelMenu, username=current_username['username'])
                         level = Level(load_level(f'levels/level{lvl}.csv'), screen, lvl)
@@ -598,6 +645,21 @@ def game():
                         elif level.win_window.btn_next.is_clicked():
                             lvl = lvl + 1
                             level = Level(load_level(f'levels/level{lvl}.csv'), screen, lvl)
+                    else:
+                        if level.btn_pause.is_clicked():
+                            if level.pause:
+                                level.pause = False
+                            else:
+                                level.pause = True
+                        if level.pause:
+                            if level.btn_again.is_clicked():
+                                level = Level(load_level(f'levels/level{lvl}.csv'), screen, lvl)
+                            elif level.btn_continue.is_clicked():
+                                level.pause = False
+                            elif level.btn_menu.is_clicked():
+                                lvl = start_window(current_window=LevelMenu, username=current_username['username'])
+                                level = Level(load_level(f'levels/level{lvl}.csv'), screen, lvl)
+                                
         if isinstance(level, Level):
             if not level.lives:
                 level = LossWindow()

@@ -35,8 +35,8 @@ class InputLine:
         self.enter = False
 
     def draw(self, screen: pygame.surface.Surface):
-        pygame.draw.rect(screen, '#5FB5CD', self.rect)
-        pygame.draw.rect(screen, '#011D2B', self.rect, width=3)
+        pygame.draw.rect(screen, '#5FB5CD', self.rect, border_radius=10)
+        pygame.draw.rect(screen, '#011D2B', self.rect, width=3, border_radius=10)
         if not self.enter and self.user_input == '':
             self.inp_text = self.font.render(self.text, True, '#033F5D')
         elif self.password and self.user_input != '':
@@ -90,9 +90,10 @@ class Button:
         bg_color, text_color = self.colors['normal_bg'], self.colors['normal_text']
         if self.is_clicked():
             bg_color, text_color = self.colors['hovered_bg'], self.colors['hovered_text']
-        screen.fill(bg_color, self.rect)
+        # screen.fill(bg_color, self.rect)
+        pygame.draw.rect(screen, bg_color, self.rect, 0, 10)
         pygame.draw.rect(screen, self.colors['normal_text'],
-                         (self.rect.x - 1, self.rect.y - 1, self.rect.w + 1, self.rect.h + 1), 3)
+                         (self.rect.x - 1, self.rect.y - 1, self.rect.w + 1, self.rect.h + 1), 3, 10)
         self.btn_text = self.font.render(self.text, True, text_color)
         self.text_rect = self.btn_text.get_rect(center=self.rect.center)
         screen.blit(self.btn_text, self.text_rect)
@@ -620,7 +621,6 @@ def start_window(current_window=MainWindow, username=None):
                             return 1
                         elif current_window.btn_level5.is_clicked():
                             return 1
-                        sys.exit()
             elif event.type == pygame.KEYDOWN:
                 if isinstance(current_window, RegistrationWindow):
                     if event.key == pygame.K_RETURN:
