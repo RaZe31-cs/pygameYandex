@@ -75,7 +75,9 @@ class InputLine:
 
 class Button:
     def __init__(self, x, y, width, height, text, normal_bgcolor, hovered_bgcolor,
-                 normal_textcolor, hovered_textcolor):
+                 normal_textcolor, hovered_textcolor, lock=False):
+        self.lock = lock
+
         self.rect = pygame.rect.Rect(x, y, width, height)
 
         size = width // (len(text) - 1)
@@ -101,7 +103,7 @@ class Button:
     def is_clicked(self):
         mouse = pygame.mouse.get_pos()
         if self.rect.x <= mouse[0] <= self.rect.x + self.rect.w and self.rect.y <= mouse[
-            1] <= self.rect.y + self.rect.h:
+            1] <= self.rect.y + self.rect.h and not self.lock:
             return True
         return False
 
@@ -513,6 +515,20 @@ class LevelMenu(BaseWindow):
 
         self.group_btn = (
             self.btn_level1, self.btn_level2, self.btn_level3, self.btn_level4, self.btn_level5)
+        
+        self.check_levels_lock()
+
+    def check_levels_lock(self):
+        username = current_username['username']
+        id = cur.execute("""SELECT id from Players where username=?""", (username,)).fetchone()[0]
+
+        levels = cur.execute("""SELECT level1_star, level2_star, level3_star, level4_star, level5_star FROM Levels_Progress where player_id = ?""", (id,)).fetchall()[0]
+        for n, i in enumerate(levels):
+            if n != 0:
+                if levels[n - 1] == 0:
+                    self.group_btn[n].lock = True
+
+
 
     def draw(self):
         self.screen.blit(self.bg_image, (0, 0))
