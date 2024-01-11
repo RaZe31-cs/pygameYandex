@@ -627,16 +627,18 @@ def start_window(current_window=MainWindow, username=None):
                     if current_window.exit_btn.is_clicked():
                         current_window = LoginWindow()
                     else:
-                        if current_window.btn_level1.is_clicked():
-                            return 1
-                        elif current_window.btn_level2.is_clicked():
-                            return 2
-                        elif current_window.btn_level3.is_clicked():
-                            return 1
-                        elif current_window.btn_level4.is_clicked():
-                            return 1
-                        elif current_window.btn_level5.is_clicked():
-                            return 1
+                        if any(x.is_clicked() for x in current_window.group_btn):
+                            if current_window.btn_level1.is_clicked():
+                                return 1
+                            elif current_window.btn_level2.is_clicked():
+                                return 2
+                            elif current_window.btn_level3.is_clicked():
+                                return 3
+                            elif current_window.btn_level4.is_clicked():
+                                return 1
+                            elif current_window.btn_level5.is_clicked():
+                                return 1
+                            sys.exit()
             elif event.type == pygame.KEYDOWN:
                 if isinstance(current_window, RegistrationWindow):
                     if event.key == pygame.K_RETURN:

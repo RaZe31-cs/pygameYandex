@@ -27,13 +27,14 @@ def load_level(filename):
 
 class Sounds:
     def __init__(self, path_running=None, path_jump=None, path_drop=None, path_star=None, path_take_a_life=None,
-                 path_loading_start_screen=None):
+                 path_loading_start_screen=None, path_kill=None):
         self.set_sound_running(path_running)
         self.set_sound_star(path_star)
         self.set_sound_jump(path_jump)
         self.set_sound_drop(path_drop)
         self.set_sound_take_a_life(path_take_a_life)
         self.set_sound_loading_start_screen(path_loading_start_screen)
+        self.set_sound_kill(path_kill)
 
     def set_sound_running(self, path):
         self.music_running = pygame.mixer.music
@@ -58,6 +59,10 @@ class Sounds:
     def set_sound_loading_start_screen(self, path):
         self.music_loading_start_screen = pygame.mixer.Sound(os.path.join('data', 'sound', path))
         self.music_loading_start_screen.set_volume(0.05)
+
+    def set_sound_kill(self, path):
+        self.sound_kill = pygame.mixer.Sound(os.path.join('data', 'sound', path))
+        self.sound_kill.set_volume(0.2)
 
 
 class Tile(pygame.sprite.Sprite):
@@ -355,8 +360,8 @@ class WinWindow:
 
         star_coords = [(self.screen.get_width() // 2 - 1.8 * empty_img_big.get_width(),
                         self.screen.get_height() // 2 - empty_img_big.get_height()), (
-                       self.screen.get_width() // 2 - empty_img_big.get_width() // 2,
-                       self.screen.get_height() // 2 - empty_img_big.get_height()),
+                           self.screen.get_width() // 2 - empty_img_big.get_width() // 2,
+                           self.screen.get_height() // 2 - empty_img_big.get_height()),
                        (self.screen.get_width() // 2 + empty_img_big.get_width(),
                         self.screen.get_height() // 2 - empty_img_big.get_height())]
         for s in range(count_star):
@@ -375,7 +380,8 @@ class WinWindow:
                     f'WHERE player_id = (SELECT id FROM Players where username = ?)',
                     (max(number, int(now[0])), current_username['username']))
         if int(now[0]) == 0 and number != 0:
-            progress = int(cur.execute(f'SELECT progress FROM Players WHERE username = ?', (current_username['username'],)).fetchone()[0])
+            progress = int(cur.execute(f'SELECT progress FROM Players WHERE username = ?',
+                                       (current_username['username'],)).fetchone()[0])
             cur.execute(f'update Players set progress = ?'
                         f'WHERE username = ?',
                         (progress + 1, current_username['username']))
@@ -387,7 +393,7 @@ class WinWindow:
             res += 1
         if self.text_enemies.split('/')[0] == self.text_enemies.split('/')[1]:
             res += 1
-        if int(self.text_time.split(':')[0]) * 60  + int(self.text_time.split(':')[-1]) < 60:
+        if int(self.text_time.split(':')[0]) * 60 + int(self.text_time.split(':')[-1]) < 60:
             res += 1
         if not self.finish:
             self.db_stars(res, level.lvl_num)
@@ -396,12 +402,12 @@ class WinWindow:
 
     def draw(self):
         w, h = self.size
-        self.screen.fill('#5FB5CD',
+        pygame.draw.rect(self.screen, '#5FB5CD',
                          pygame.rect.Rect(self.screen.get_width() / 2 - w / 2, self.screen.get_height() / 2 - h / 2, w,
-                                          h))
-        pygame.draw.rect(self.screen, '#011D2B', pygame.rect.Rect(self.screen.get_width() / 2 - w / 2 - 2,
-                                                                  self.screen.get_height() / 2 - h / 2 - 2, w + 2,
-                                                                  h + 2), 4)
+                                          h), 0, 10)
+        pygame.draw.rect(self.screen, '#011D2B', pygame.rect.Rect(self.screen.get_width() / 2 - w / 2 - 3,
+                                                                  self.screen.get_height() / 2 - h / 2 - 3, w + 3,
+                                                                  h + 3), 6, 10)
         self.display_text()
         for btn in self.btn_group:
             btn.draw(self.screen)
@@ -411,6 +417,7 @@ class WinWindow:
 class Level:
     def __init__(self, level_data, surface, lvl):
         self.display_surface = surface
+        self.lvl_num = lvl
         self.setup_level(level_data)
         self.live_img = load_image('lives.png')
         self.lives = [(25 * (i + 1) + 5 * i, 25) for i in range(3)]
@@ -418,16 +425,19 @@ class Level:
         time = datetime.datetime.now().time()
         self.start_time = datetime.timedelta(hours=time.hour, minutes=time.minute, seconds=time.second)
         self.finish_time = self.start_time
-        self.lvl_num = lvl
         self.end = False
         self.pause = False
         normal_bg, hovered_bg = '#078CB2', '#076682'
         normal_text, hovered_text = '#011D2B', '#ffffff'
 
+        btn_width, bth_height = 180, 50
         self.btn_pause = Button(width / 1.045, 5, 50, 50, '', normal_bg, hovered_bg, normal_text, hovered_text)
-        self.btn_menu = Button(width / 2 / 1.7, height / 1.82, 70, 50, 'Меню', normal_bg, hovered_bg, normal_text, hovered_text)
-        self.btn_continue = Button(width / 2.25 , height / 1.82, 150, 50, 'Продолжить', normal_bg, hovered_bg, normal_text, hovered_text)
-        self.btn_again = Button(width / 1.57, height / 1.82, 100, 50, 'Заново', normal_bg, hovered_bg, normal_text, hovered_text)
+        self.btn_menu = Button(width / 2 - btn_width / 0.63, height / 1.82, btn_width, bth_height, 'Меню', normal_bg, hovered_bg, normal_text,
+                               hovered_text)
+        self.btn_continue = Button(width / 2 - btn_width / 2, height / 1.82, btn_width, bth_height, 'Продолжить', normal_bg, hovered_bg,
+                                   normal_text, hovered_text)
+        self.btn_again = Button(width / 2 + btn_width / 1.7, height / 1.82, btn_width, bth_height, 'Заново', normal_bg, hovered_bg, normal_text,
+                                hovered_text)
         self.group_pause_btn = (self.btn_menu, self.btn_continue, self.btn_again)
 
     def setup_level(self, layout):
@@ -459,7 +469,8 @@ class Level:
                     self.player.add(player)
 
                 if cell == '%':
-                    enemy = Enemy((x, y), random.choice(os.listdir('data/enemies')[1:]))
+                    enemy = Enemy((x, y), random.choice(
+                        os.listdir('data/enemies')[1:][3 * (self.lvl_num - 1):3 * self.lvl_num]))
                     self.enemies.add(enemy)
                     self.enemies_count += 1
 
@@ -545,6 +556,7 @@ class Level:
             if (player.rect.colliderect(enemy.rect) and not player.on_ground and
                     player.rect.bottom < enemy.rect.bottom and player.direction.y > 0):
                 enemy.change_status()
+                sounds.sound_kill.play()
 
         if player.on_ground and (player.direction.y < 0 or player.direction.y > 1):
             player.on_ground = False
@@ -566,8 +578,8 @@ class Level:
         height_pause_win = height / 2
         x_main, y_main = width / 2 - width_pause_win / 2, height / 2 - height_pause_win / 2
         rect = pygame.rect.Rect(x_main, y_main, width_pause_win, height_pause_win)
-        pygame.draw.rect(screen, '#5FB5CD', rect, 0, 10) # основное меню
-        pygame.draw.rect(screen, '#0c118a', rect, 7, 10) # рамка
+        pygame.draw.rect(screen, '#5FB5CD', rect, 0, 10)  # основное меню
+        pygame.draw.rect(screen, '#011D2B', rect, 7, 10)  # рамка
 
         text_number_level = 'Level ' + str(lvl)
         f1 = pygame.font.Font(None, 85)
@@ -577,11 +589,6 @@ class Level:
 
         for i in self.group_pause_btn:
             i.draw(screen)
-        
-
-
-        
-
 
     def draw(self):
         self.tiles.update(self.world_shift)
@@ -589,21 +596,21 @@ class Level:
 
         self.stars.update(self.world_shift)
         self.stars.draw(self.display_surface)
-        self.scroll_x()
-
         self.seaweeds.update(self.world_shift)
-        self.seaweeds.draw(self.display_surface)
+        self.scroll_x()
 
         if self.player.sprite.end:
             if self.start_time == self.finish_time:
                 time = datetime.datetime.now().time()
                 self.finish_time = datetime.timedelta(hours=time.hour, minutes=time.minute, seconds=time.second)
+            self.seaweeds.draw(self.display_surface)
             self.draw_end()
         elif self.pause:
             self.enemies.draw(self.display_surface)
             self.player.draw(self.display_surface)
             self.btn_pause.draw(self.display_surface)
             self.btn_pause_image(self.display_surface)
+            self.seaweeds.draw(self.display_surface)
             self.draw_pause(self.display_surface)
         else:
             self.enemies.update(self.world_shift)
@@ -614,11 +621,13 @@ class Level:
             self.vertical_movement_collision()
             self.enemies.draw(self.display_surface)
             self.player.draw(self.display_surface)
-            
+
             self.btn_pause.draw(self.display_surface)
             self.btn_pause_image(self.display_surface)
-        for l in self.lives: 
-                self.display_surface.blit(self.live_img, l)
+            self.seaweeds.draw(self.display_surface)
+        for l in self.lives:
+            self.display_surface.blit(self.live_img, l)
+
 
 
 def game():
@@ -659,7 +668,7 @@ def game():
                             elif level.btn_menu.is_clicked():
                                 lvl = start_window(current_window=LevelMenu, username=current_username['username'])
                                 level = Level(load_level(f'levels/level{lvl}.csv'), screen, lvl)
-                                
+
         if isinstance(level, Level):
             if not level.lives:
                 level = LossWindow()
@@ -677,7 +686,8 @@ sounds = Sounds(path_jump='sound_jump.mp3',
                 path_running='sound_running.mp3',
                 path_star='sound_star.mp3',
                 path_take_a_life='sound_take_a_life.mp3',
-                path_loading_start_screen='sound_loading_screen.mp3')
+                path_loading_start_screen='sound_loading_screen.mp3',
+                path_kill='sound_kill.mp3')
 sounds.music_loading_start_screen.play()
 icon = pygame.image.load(os.path.join('data', 'icon.png'))
 pygame.display.set_icon(icon)
