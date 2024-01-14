@@ -218,12 +218,16 @@ class Enemy(pygame.sprite.Sprite):
         self.direction = pygame.math.Vector2(-1, 0)
 
     def import_enemy_assets(self):
-        enemy_path = f'data/enemies/{self.name}/'
+        if self.name != 'data/mines':
+            enemy_path = f'data/enemies/{self.name}/'
+        else:
+            enemy_path = self.name + '/'
         self.animations = {'run': [], 'death': []}
 
         for animation in self.animations.keys():
             full_path = enemy_path + animation
             self.animations[animation] = import_folder(full_path)
+
 
     def animate(self):
         animation = self.animations[self.status]
@@ -235,7 +239,7 @@ class Enemy(pygame.sprite.Sprite):
                 self.is_alive = False
 
         image = animation[int(self.frame_index)]
-        if self.facing_right:
+        if self.facing_right or self.name == 'data/mines':
             self.image = image
         else:
             self.image = pygame.transform.flip(image, True, False)
@@ -244,8 +248,9 @@ class Enemy(pygame.sprite.Sprite):
         self.status = 'death'
 
     def change_direction(self):
-        self.facing_right = False if self.facing_right else True
-        self.direction.x = -self.direction.x
+        if self.name != 'data/mines':
+            self.facing_right = False if self.facing_right else True
+            self.direction.x = -self.direction.x
 
     def update(self, x_shift):
         self.animate()
@@ -446,6 +451,7 @@ class Level:
         self.stars_count, self.player_stars = 0, 0
         self.player = pygame.sprite.GroupSingle()
         self.enemies_count, self.enemies = 0, pygame.sprite.Group()
+        self.mines = pygame.sprite.Group()
         self.obstacles = []
 
         self.seaweeds = pygame.sprite.Group()
@@ -473,6 +479,10 @@ class Level:
                         os.listdir('data/enemies')[1:][3 * (self.lvl_num - 1):3 * self.lvl_num]))
                     self.enemies.add(enemy)
                     self.enemies_count += 1
+
+                if cell == '#':
+                    mine = Enemy((x, y), 'data/mines')
+                    self.mines.add(mine)
 
                 if cell == '*':
                     star = Decor((x, y), tile_size, 'coins.png')
@@ -521,6 +531,15 @@ class Level:
                 if enemy.rect.colliderect(player.rect) and enemy.status == 'run' and not player.hurts:
                     self.live()
                     player.hurts = 80
+
+        for mine in self.mines.sprites():
+            if not mine.is_alive:
+                self.mines.remove_internal(mine)
+            else:
+                if mine.rect.colliderect(player.rect) and mine.status == 'run' and not player.hurts:
+                    self.live()
+                    player.hurts = 80
+                    mine.change_status()
 
         for sprite in self.tiles.sprites():
             if sprite.rect.colliderect(player.rect):
@@ -607,6 +626,7 @@ class Level:
             self.draw_end()
         elif self.pause:
             self.enemies.draw(self.display_surface)
+            self.mines.draw(self.display_surface)
             self.player.draw(self.display_surface)
             self.btn_pause.draw(self.display_surface)
             self.btn_pause_image(self.display_surface)
@@ -614,12 +634,14 @@ class Level:
             self.draw_pause(self.display_surface)
         else:
             self.enemies.update(self.world_shift)
+            self.mines.update(self.world_shift)
             for obstacle in self.obstacles:
                 obstacle.x += self.world_shift
             self.player.update()
             self.horizontal_movement_collision()
             self.vertical_movement_collision()
             self.enemies.draw(self.display_surface)
+            self.mines.draw(self.display_surface)
             self.player.draw(self.display_surface)
 
             self.btn_pause.draw(self.display_surface)

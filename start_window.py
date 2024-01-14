@@ -635,7 +635,7 @@ def start_window(current_window=MainWindow, username=None):
                             elif current_window.btn_level3.is_clicked():
                                 return 3
                             elif current_window.btn_level4.is_clicked():
-                                return 1
+                                return 4
                             elif current_window.btn_level5.is_clicked():
                                 return 1
                             sys.exit()
