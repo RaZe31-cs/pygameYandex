@@ -449,7 +449,7 @@ class RecordsWindow(BaseWindow):
                          (x_shift, y_shift - num_col_width, table_width, table_height), 5)
         self.text_in_rect(x_shift, y_shift - num_col_width, num_col_width, num_col_width, '', color)
         self.text_in_rect(x_shift + num_col_width, y_shift - num_col_width, col_user_width, num_col_width, 'Имя пользователя', color)
-        self.text_in_rect(x_shift + num_col_width + col_user_width, y_shift - num_col_width, col_rec_width, num_col_width, 'Прогресс',
+        self.text_in_rect(x_shift + num_col_width + col_user_width, y_shift - num_col_width, col_rec_width, num_col_width, 'Количество звёзд',
                           color)
         coords = self.table.coords
         for n, i in enumerate(coords.keys()):
@@ -478,7 +478,13 @@ class RecordsWindow(BaseWindow):
         self.exit_btn_draw()
 
     def records_data(self):
-        res = cur.execute(f'SELECT username, progress FROM Players').fetchall()
+        ids = cur.execute("""SELECT id, username from Players""").fetchall()
+        res = []
+        for id, user in ids:
+            levels = cur.execute(
+                """SELECT level1_star, level2_star, level3_star, level4_star, level5_star FROM Levels_Progress where player_id = ?""",
+                (id,)).fetchall()[0]
+            res.append((user, sum(levels)))
         return res
 
 
@@ -637,7 +643,7 @@ def start_window(current_window=MainWindow, username=None):
                             elif current_window.btn_level4.is_clicked():
                                 return 4
                             elif current_window.btn_level5.is_clicked():
-                                return 1
+                                return 5
                             sys.exit()
             elif event.type == pygame.KEYDOWN:
                 if isinstance(current_window, RegistrationWindow):

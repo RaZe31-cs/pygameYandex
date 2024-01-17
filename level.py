@@ -27,7 +27,7 @@ def load_level(filename):
 
 class Sounds:
     def __init__(self, path_running=None, path_jump=None, path_drop=None, path_star=None, path_take_a_life=None,
-                 path_loading_start_screen=None, path_kill=None):
+                 path_loading_start_screen=None, path_kill=None, path_bomb=None):
         self.set_sound_running(path_running)
         self.set_sound_star(path_star)
         self.set_sound_jump(path_jump)
@@ -35,6 +35,7 @@ class Sounds:
         self.set_sound_take_a_life(path_take_a_life)
         self.set_sound_loading_start_screen(path_loading_start_screen)
         self.set_sound_kill(path_kill)
+        self.set_sound_bomb(path_bomb)
 
     def set_sound_running(self, path):
         self.music_running = pygame.mixer.music
@@ -63,6 +64,10 @@ class Sounds:
     def set_sound_kill(self, path):
         self.sound_kill = pygame.mixer.Sound(os.path.join('data', 'sound', path))
         self.sound_kill.set_volume(0.2)
+
+    def set_sound_bomb(self, path):
+        self.sound_bomb = pygame.mixer.Sound(os.path.join('data', 'sound', path))
+        self.sound_bomb.set_volume(0.2)
 
 
 class Tile(pygame.sprite.Sprite):
@@ -300,7 +305,7 @@ class LossWindow(BaseWindow):
 
 
 class WinWindow:
-    def __init__(self, surface):
+    def __init__(self, surface, is_final=False):
         self.screen = surface
         self.size = (650, 350)
 
@@ -312,6 +317,8 @@ class WinWindow:
         normal_bg, hovered_bg = '#078CB2', '#076682'
         normal_text, hovered_text = '#011D2B', '#ffffff'
 
+        self.is_final = is_final
+
         self.btn_menu = Button(btn_menu_x, btn_menu_y, btn_width, btn_height, 'Вернуться в меню', normal_bg,
                                hovered_bg, normal_text, hovered_text)
         self.btn_again = Button(btn_again_x, btn_again_y, btn_width, btn_height, 'Заново', normal_bg,
@@ -319,7 +326,9 @@ class WinWindow:
         self.btn_next = Button(btn_next_x, btn_next_y, btn_width, btn_height, 'Следующий уровень', normal_bg,
                                hovered_bg, normal_text, hovered_text)
 
-        self.btn_group = [self.btn_menu, self.btn_again, self.btn_next]
+        self.btn_group = [self.btn_menu, self.btn_again]
+        if not self.is_final:
+            self.btn_group.append(self.btn_next)
         self.finish = False
 
     def display_text(self):
@@ -475,8 +484,11 @@ class Level:
                     self.player.add(player)
 
                 if cell == '%':
-                    enemy = Enemy((x, y), random.choice(
-                        os.listdir('data/enemies')[1:][3 * (self.lvl_num - 1):3 * self.lvl_num]))
+                    if self.lvl_num != 5:
+                        enemy = Enemy((x, y), random.choice(
+                            os.listdir('data/enemies')[3 * (self.lvl_num - 1):3 * self.lvl_num]))
+                    else:
+                        enemy = Enemy((x, y),random.choice(os.listdir('data/enemies')))
                     self.enemies.add(enemy)
                     self.enemies_count += 1
 
@@ -540,6 +552,7 @@ class Level:
                     self.live()
                     player.hurts = 80
                     mine.change_status()
+                    sounds.sound_bomb.play()
 
         for sprite in self.tiles.sprites():
             if sprite.rect.colliderect(player.rect):
@@ -582,7 +595,10 @@ class Level:
 
     def draw_end(self):
         if not self.end:
-            self.win_window = WinWindow(self.display_surface)
+            if self.lvl_num != 5:
+                self.win_window = WinWindow(self.display_surface)
+            else:
+                self.win_window = WinWindow(self.display_surface, is_final=True)
             self.end = True
         self.win_window.draw()
 
@@ -673,7 +689,7 @@ def game():
                         elif level.win_window.btn_menu.is_clicked():
                             lvl = start_window(current_window=LevelMenu, username=current_username['username'])
                             level = Level(load_level(f'levels/level{lvl}.csv'), screen, lvl)
-                        elif level.win_window.btn_next.is_clicked():
+                        elif level.win_window.btn_next.is_clicked() and not level.win_window.is_final:
                             lvl = lvl + 1
                             level = Level(load_level(f'levels/level{lvl}.csv'), screen, lvl)
                     else:
@@ -709,7 +725,8 @@ sounds = Sounds(path_jump='sound_jump.mp3',
                 path_star='sound_star.mp3',
                 path_take_a_life='sound_take_a_life.mp3',
                 path_loading_start_screen='sound_loading_screen.mp3',
-                path_kill='sound_kill.mp3')
+                path_kill='sound_kill.mp3',
+                path_bomb='sound_bomb.mp3')
 sounds.music_loading_start_screen.play()
 icon = pygame.image.load(os.path.join('data', 'icon.png'))
 pygame.display.set_icon(icon)
